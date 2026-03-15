@@ -1,5 +1,7 @@
 package com.abpvt.newsapp.ui.profile
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -13,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,6 +25,8 @@ import androidx.navigation.NavHostController
 import com.abpvt.newsapp.auth.AuthState
 import com.abpvt.newsapp.auth.AuthViewModel
 import com.abpvt.newsapp.navigation.Screen
+import com.abpvt.newsapp.ui.theme.*
+import kotlinx.coroutines.delay
 
 @Composable
 fun ProfileScreen(
@@ -61,6 +66,10 @@ fun ProfileScreen(
         }
     }
 
+    // Stagger entrance animation
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { delay(50); visible = true }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -72,33 +81,44 @@ fun ProfileScreen(
                 },
                 backgroundColor = MaterialTheme.colors.primary,
                 contentColor = Color.White,
-                elevation = 4.dp
+                elevation = 0.dp
             )
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colors.background)
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // User Avatar Placeholder
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colors.primary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
+            // Gradient Avatar with initial
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(tween(600)) + scaleIn(tween(600, easing = FastOutSlowInEasing))
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profile Avatar",
-                    modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colors.primary
-                )
+                val initial = currentUserName.firstOrNull()?.uppercaseChar() ?: 'N'
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(GradientStart, GradientEnd)
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = initial.toString(),
+                        fontSize = 44.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

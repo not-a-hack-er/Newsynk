@@ -2,8 +2,9 @@ package com.abpvt.newsapp.ui.news
 
 import android.net.Uri
 import android.util.Log
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
@@ -28,7 +28,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.abpvt.newsapp.navigation.Screen
-import com.abpvt.newsapp.ui.theme.ScreenBackground
+import com.abpvt.newsapp.ui.theme.*
 
 /**
  * Composable screen that shows a list of news articles.
@@ -66,21 +66,37 @@ fun NewsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars),
-                color = MaterialTheme.colors.primary,
                 elevation = 4.dp
             ) {
-                TopAppBar(
-                    title = { Text(text = "Top Headlines") },
-                    actions = {
-                        IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Profile"
+                Box(
+                    modifier = Modifier
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(GradientStart, GradientEnd)
                             )
-                        }
-                    },
-                    elevation = 0.dp
-                )
+                        )
+                ) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "Top Headlines",
+                                color = androidx.compose.ui.graphics.Color.White
+                            )
+                        },
+                        actions = {
+                            IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Profile",
+                                    tint = androidx.compose.ui.graphics.Color.White
+                                )
+                            }
+                        },
+                        backgroundColor = androidx.compose.ui.graphics.Color.Transparent,
+                        contentColor = androidx.compose.ui.graphics.Color.White,
+                        elevation = 0.dp
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -91,45 +107,47 @@ fun NewsScreen(
                 .padding(innerPadding)
                 .pullRefresh(pullRefreshState)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                if (error != null) {
-                    Text(
-                        text = "Error: ${error ?: "Unknown error"}",
-                        color = MaterialTheme.colors.error,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-
-                if (!isLoading && articles.isEmpty() && error == null) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+            Crossfade(targetState = isLoading to articles, animationSpec = tween(400), label = "news_crossfade") { (loading, list) ->
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (error != null) {
                         Text(
-                            text = "No articles available",
-                            style = MaterialTheme.typography.h6
+                            text = "Error: ${error ?: "Unknown error"}",
+                            color = MaterialTheme.colors.error,
+                            modifier = Modifier.padding(16.dp)
                         )
                     }
-                }
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(articles) { article ->
-                        NewsItem(
-                            article = article,
-                            onArticleClick = {
-                                val articleUrl = Uri.encode(article.url)
-                                navController.navigate(Screen.ArticleView.createRoute(articleUrl))
-                            },
-                            onCommentClick = {
-                                val articleId = Uri.encode(article.url)
-                                navController.navigate(Screen.Comments.createRoute(articleId))
-                            }
-                        )
+                    if (!loading && list.isEmpty() && error == null) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No articles available",
+                                style = MaterialTheme.typography.h6
+                            )
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(list) { article ->
+                            NewsItem(
+                                article = article,
+                                onArticleClick = {
+                                    val articleUrl = Uri.encode(article.url)
+                                    navController.navigate(Screen.ArticleView.createRoute(articleUrl))
+                                },
+                                onCommentClick = {
+                                    val articleId = Uri.encode(article.url)
+                                    navController.navigate(Screen.Comments.createRoute(articleId))
+                                }
+                            )
+                        }
                     }
                 }
             }

@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.material3)
     // Add Material 2 support for existing screens
     implementation("androidx.compose.material:material")
+    implementation("androidx.compose.material:material-icons-extended")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
