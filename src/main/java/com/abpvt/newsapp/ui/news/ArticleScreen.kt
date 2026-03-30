@@ -2,14 +2,16 @@ package com.abpvt.newsapp.ui.news
 
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.content.Intent
@@ -20,6 +22,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.abpvt.newsapp.data.model.Article
 import com.abpvt.newsapp.navigation.Screen
+import com.abpvt.newsapp.ui.theme.GradientEnd
+import com.abpvt.newsapp.ui.theme.GradientStart
 
 @Composable
 fun ArticleScreen(
@@ -47,6 +51,7 @@ fun ArticleScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.statusBarsPadding(),
                 title = { Text("Article") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -59,14 +64,12 @@ fun ArticleScreen(
                         onClick = { 
                             // Construct a minimal dummy Article for saving if needed, though we primarily just need the URL.
                             val dummyArticle = Article(
-                                source = Article.Source(id = null, name = articleSource ?: "Unknown"),
-                                author = null,
+                                id = "",
                                 title = articleTitle ?: "Saved Article",
-                                description = null,
                                 url = url,
-                                urlToImage = null,
                                 publishedAt = "",
-                                content = null
+                                sectionName = articleSource ?: "Unknown",
+                                fields = null
                             )
                             interactionViewModel.toggleBookmark(dummyArticle) 
                         }
@@ -100,7 +103,8 @@ fun ArticleScreen(
                         )
                     }
                 },
-                elevation = 4.dp
+                elevation = 4.dp,
+                backgroundColor = GradientStart
             )
         }
     ) { paddingValues ->
@@ -128,9 +132,14 @@ fun ArticleScreen(
                 }
             )
 
-            // Show a simple loading indicator while the page loads
+            // Centered loading indicator
             if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxSize().padding(top = 0.dp))
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = GradientStart)
+                }
             }
         }
     }

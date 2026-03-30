@@ -129,7 +129,7 @@ class InteractionRepository {
                 if (article != null) {
                     bookmarkData["title"] = article.title
                     bookmarkData["source"] = article.source.name
-                    article.publishedAt?.let { bookmarkData["publishedAt"] = it }
+                    if (article.publishedAt.isNotBlank()) bookmarkData["publishedAt"] = article.publishedAt
                     article.urlToImage?.let { bookmarkData["urlToImage"] = it }
                     article.description?.let { bookmarkData["description"] = it }
                 }
@@ -162,14 +162,17 @@ class InteractionRepository {
                 val description = doc.getString("description")
 
                 Article(
-                    source = Article.Source(id = null, name = sourceName),
-                    author = null,
+                    id = doc.id,
                     title = title,
-                    description = description,
                     url = url,
-                    urlToImage = urlToImage,
                     publishedAt = publishedAt,
-                    content = null
+                    sectionName = sourceName,
+                    fields = Article.Fields(
+                        urlToImage = urlToImage,
+                        description = description,
+                        author = null,
+                        content = null
+                    )
                 )
             }
             Resource.Success(articles)

@@ -6,9 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -54,14 +56,12 @@ fun LoginScreen(
     val authState by viewModel.authState.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    // Entrance animation state
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(100)
         visible = true
     }
 
-    // Logo pulse animation
     val logoScale by animateFloatAsState(
         targetValue = if (visible) 1f else 0.5f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
@@ -85,14 +85,19 @@ fun LoginScreen(
                 )
             )
     ) {
+        // Scrollable so nothing clips on small screens
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp),
+                .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
+                .padding(horizontal = 28.dp)
+                .padding(top = 24.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo / Icon
+
+            // ── Logo ────────────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { -60 }
@@ -110,33 +115,27 @@ fun LoginScreen(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "📰",
-                            fontSize = 36.sp
-                        )
+                        Text(text = "📰", fontSize = 36.sp)
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
-                        text = "NewsApp",
-                        fontSize = 32.sp,
+                        text = "Newsynk",
+                        fontSize = 30.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )
-
                     Text(
-                        text = "Stay ahead. Stay informed.",
-                        fontSize = 14.sp,
+                        text = "Stay synced. Stay ahead.",
+                        fontSize = 13.sp,
                         color = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
-            // Input Card
+            // ── Input Card ──────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(tween(800, delayMillis = 200)) + slideInVertically(tween(800, delayMillis = 200)) { 80 }
@@ -179,7 +178,9 @@ fun LoginScreen(
                                 focusedBorderColor = DeepBlue,
                                 unfocusedBorderColor = Color(0xFFDDE3F5),
                                 cursorColor = DeepBlue,
-                                focusedLabelColor = DeepBlue
+                                focusedLabelColor = DeepBlue,
+                                textColor = Color.Black,
+                                backgroundColor = Color.Transparent
                             )
                         )
 
@@ -210,26 +211,35 @@ fun LoginScreen(
                                 focusedBorderColor = DeepBlue,
                                 unfocusedBorderColor = Color(0xFFDDE3F5),
                                 cursorColor = DeepBlue,
-                                focusedLabelColor = DeepBlue
+                                focusedLabelColor = DeepBlue,
+                                textColor = Color.Black,
+                                backgroundColor = Color.Transparent
                             )
                         )
 
-                        // Remember Me
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // ── Remember Me ──────────────────────────────────────
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 4.dp),
+                                .padding(vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(
                                 checked = rememberMe,
                                 onCheckedChange = { rememberMe = it },
-                                colors = CheckboxDefaults.colors(checkedColor = DeepBlue)
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = DeepBlue,
+                                    uncheckedColor = Color.Gray,
+                                    checkmarkColor = Color.White
+                                )
                             )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Remember me for 7 days",
                                 style = MaterialTheme.typography.body2,
-                                modifier = Modifier.padding(start = 4.dp)
+                                color = Color(0xFF444444)
                             )
                         }
 
@@ -242,11 +252,11 @@ fun LoginScreen(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
+                                    .padding(bottom = 6.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         // Login Button
                         if (isLoading) {
@@ -275,7 +285,7 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Register link
             AnimatedVisibility(

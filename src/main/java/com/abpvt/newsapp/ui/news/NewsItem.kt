@@ -81,7 +81,7 @@ fun NewsItem(
     Card(
         elevation = 4.dp,
         shape = RoundedCornerShape(20.dp),
-        backgroundColor = NewsCardBg,
+        backgroundColor = MaterialTheme.colors.surface,
         modifier = Modifier
             .fillMaxWidth()
             .scale(cardScale)
@@ -180,20 +180,21 @@ fun NewsItem(
                     ),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = TitleText
+                    color = MaterialTheme.colors.onSurface
                 )
 
-                if (!article.description.isNullOrBlank()) {
+                val description = article.description
+                if (!description.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = article.description,
+                        text = description,
                         style = MaterialTheme.typography.body2.copy(
                             fontSize = 13.sp,
                             lineHeight = 19.sp
                         ),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        color = DescriptionText
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                     )
                 }
 
@@ -212,7 +213,7 @@ fun NewsItem(
                     // Vote pill
                     Surface(
                         shape = RoundedCornerShape(24.dp),
-                        color = ButtonBackground
+                        color = if (MaterialTheme.colors.isLight) ButtonBackground else Color.White.copy(alpha = 0.1f)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -259,7 +260,7 @@ fun NewsItem(
                     // Comment pill
                     Surface(
                         shape = RoundedCornerShape(24.dp),
-                        color = ButtonBackground,
+                        color = if (MaterialTheme.colors.isLight) ButtonBackground else Color.White.copy(alpha = 0.1f),
                         modifier = Modifier.clickable { onCommentClick() }
                     ) {
                         Row(

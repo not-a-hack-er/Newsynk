@@ -6,19 +6,47 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-/** Retrofit service interface for the News API. */
+/**
+ * Retrofit service interface for The Guardian Open Platform API.
+ * Base URL: https://content.guardianapis.com/
+ *
+ * Docs: https://open-platform.theguardian.com/documentation/
+ */
 interface NewsApiService {
-    @GET("top-headlines")
+
+    /**
+     * Fetch the latest content across all sections.
+     * show-fields=thumbnail,trailText,byline adds the enriched fields.
+     */
+    @GET("search")
     suspend fun getTopHeadlines(
-        @Query("country") country: String,
-        @Query("apiKey") apiKey: String = Constants.NEWS_API_KEY
+        @Query("order-by")    orderBy: String = "newest",
+        @Query("show-fields") showFields: String = "thumbnail,trailText,byline",
+        @Query("page-size")   pageSize: Int = 30,
+        @Query("api-key")     apiKey: String = Constants.NEWS_API_KEY
     ): Response<NewsResponse>
 
-    @GET("everything")
+    /**
+     * Search or filter content by section / keyword.
+     */
+    @GET("search")
     suspend fun getLatestNews(
-        @Query("q") query: String,
-        @Query("sortBy") sortBy: String = "publishedAt",
-        @Query("language") language: String = "en",
-        @Query("apiKey") apiKey: String = Constants.NEWS_API_KEY
+        @Query("q")           query: String,
+        @Query("order-by")    orderBy: String = "newest",
+        @Query("show-fields") showFields: String = "thumbnail,trailText,byline",
+        @Query("page-size")   pageSize: Int = 30,
+        @Query("api-key")     apiKey: String = Constants.NEWS_API_KEY
+    ): Response<NewsResponse>
+
+    /**
+     * Fetch by section slug, e.g. "sport", "technology", "business".
+     */
+    @GET("search")
+    suspend fun getBySection(
+        @Query("section")     section: String,
+        @Query("order-by")    orderBy: String = "newest",
+        @Query("show-fields") showFields: String = "thumbnail,trailText,byline",
+        @Query("page-size")   pageSize: Int = 30,
+        @Query("api-key")     apiKey: String = Constants.NEWS_API_KEY
     ): Response<NewsResponse>
 }

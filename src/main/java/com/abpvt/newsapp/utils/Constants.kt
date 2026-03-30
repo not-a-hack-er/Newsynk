@@ -1,7 +1,9 @@
 package com.abpvt.newsapp.utils
 
+import com.abpvt.newsapp.BuildConfig
 
 object Constants {
-    const val BASE_URL = "https://newsapi.org/v2/"
-    const val NEWS_API_KEY = "6891da998c1a49beae9b1084dd6b9552"
+    const val BASE_URL = "https://content.guardianapis.com/"
+    // API key is injected from local.properties via buildConfigField — never hardcoded in source
+    val NEWS_API_KEY: String get() = BuildConfig.NEWS_API_KEY
 }

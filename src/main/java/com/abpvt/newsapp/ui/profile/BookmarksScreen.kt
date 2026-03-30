@@ -32,6 +32,7 @@ fun BookmarksScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.statusBarsPadding(),
                 title = { Text("Saved Articles") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -48,6 +49,7 @@ fun BookmarksScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
         ) {
             when {
                 isLoading -> {

@@ -19,91 +19,95 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.abpvt.newsapp.auth.AuthViewModel
 import com.abpvt.newsapp.navigation.Screen
 import com.abpvt.newsapp.ui.theme.*
 
-/**
- * Composable screen that shows a list of news articles.
- *
- * Navigation:
- * - On article click we navigate to comments screen using the article's URL encoded as id.
- */
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun NewsScreen(
     navController: NavHostController,
-    newsViewModel: NewsViewModel = viewModel()
+    newsViewModel: NewsViewModel = viewModel(),
+    authViewModel: AuthViewModel? = null
 ) {
     val articles by newsViewModel.articles.collectAsState()
     val isLoading by newsViewModel.isLoading.collectAsState()
     val error by newsViewModel.error.collectAsState()
 
-    // Pull-to-refresh state
+    // Collect user name safely — authViewModel is optional
+    val userName by (authViewModel?.currentUserName
+        ?: kotlinx.coroutines.flow.MutableStateFlow("")).collectAsState()
+
+    // Derive greeting label
+    val greeting = if (userName.isNotBlank()) "Hi, $userName 👋" else ""
+
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isLoading,
         onRefresh = { newsViewModel.refresh() }
     )
 
-    LaunchedEffect(Unit) {
-        Log.d("NewsScreen", "NewsScreen composed")
-    }
-
+    LaunchedEffect(Unit) { Log.d("NewsScreen", "NewsScreen composed") }
     LaunchedEffect(articles, isLoading, error) {
         Log.d("NewsScreen", "State - Loading: $isLoading, Articles: ${articles.size}, Error: $error")
     }
 
     Scaffold(
         topBar = {
-            Surface(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars),
-                elevation = 4.dp
+                    .background(
+                        Brush.horizontalGradient(colors = listOf(GradientStart, GradientEnd))
+                    )
             ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(GradientStart, GradientEnd)
-                            )
-                        )
-                ) {
-                    TopAppBar(
-                        title = {
+                TopAppBar(
+                    modifier = Modifier.statusBarsPadding(),
+                    title = {
+                        Column {
                             Text(
-                                text = "Top Headlines",
-                                color = androidx.compose.ui.graphics.Color.White
+                                text = "Newsynk",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
                             )
-                        },
-                        actions = {
-                            IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Profile",
-                                    tint = androidx.compose.ui.graphics.Color.White
+                            if (greeting.isNotEmpty()) {
+                                Text(
+                                    text = greeting,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Normal
                                 )
                             }
-                        },
-                        backgroundColor = androidx.compose.ui.graphics.Color.Transparent,
-                        contentColor = androidx.compose.ui.graphics.Color.White,
-                        elevation = 0.dp
-                    )
-                }
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile",
+                                tint = Color.White
+                            )
+                        }
+                    },
+                    backgroundColor = Color.Transparent,
+                    contentColor = Color.White,
+                    elevation = 0.dp
+                )
             }
         }
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ScreenBackground)
+                .background(MaterialTheme.colors.background)
                 .padding(innerPadding)
                 .pullRefresh(pullRefreshState)
         ) {
@@ -122,10 +126,7 @@ fun NewsScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "No articles available",
-                                style = MaterialTheme.typography.h6
-                            )
+                            Text(text = "No articles available", style = MaterialTheme.typography.h6)
                         }
                     }
 
@@ -152,7 +153,6 @@ fun NewsScreen(
                 }
             }
 
-            // Pull refresh indicator
             PullRefreshIndicator(
                 refreshing = isLoading,
                 state = pullRefreshState,
