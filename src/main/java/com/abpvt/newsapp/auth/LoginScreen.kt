@@ -1,7 +1,11 @@
 package com.abpvt.newsapp.auth
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -11,12 +15,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,31 +36,42 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.abpvt.newsapp.BuildConfig
 import com.abpvt.newsapp.navigation.Screen
 import com.abpvt.newsapp.ui.theme.Amber
 import com.abpvt.newsapp.ui.theme.DeepBlue
 import com.abpvt.newsapp.ui.theme.GradientEnd
 import com.abpvt.newsapp.ui.theme.GradientStart
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     navController: NavHostController,
-    viewModel: AuthViewModel = viewModel(
-        factory = AuthViewModelFactory(LocalContext.current.applicationContext as android.app.Application)
-    )
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
+    var googleLoading by remember { mutableStateOf(false) }
     val isLoading by viewModel.isLoading.collectAsState()
     val authState by viewModel.authState.collectAsState()
     val error by viewModel.error.collectAsState()
 
     var visible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
         delay(100)
         visible = true
@@ -69,10 +84,15 @@ fun LoginScreen(
     )
 
     LaunchedEffect(authState) {
-        if (authState is AuthState.Authenticated) {
-            navController.navigate(Screen.News.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
+        when (authState) {
+            is AuthState.Authenticated -> {
+                googleLoading = false
+                navController.navigate(Screen.News.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
             }
+            is AuthState.Error -> googleLoading = false
+            else -> Unit
         }
     }
 
@@ -85,7 +105,6 @@ fun LoginScreen(
                 )
             )
     ) {
-        // Scrollable so nothing clips on small screens
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -97,7 +116,7 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-            // ── Logo ────────────────────────────────────────────────────────
+            // ── Logo ─────────────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { -60 }
@@ -135,15 +154,15 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(36.dp))
 
-            // ── Input Card ──────────────────────────────────────────────────
+            // ── Input Card ───────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(tween(800, delayMillis = 200)) + slideInVertically(tween(800, delayMillis = 200)) { 80 }
             ) {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    elevation = 8.dp,
-                    backgroundColor = Color.White
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
@@ -162,11 +181,12 @@ fun LoginScreen(
                             modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
                         )
 
-                        // Email field
+                        // ── Email ─────────────────────────────────────────────
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            label = { Text("Email") },
+                            label = { Text("Email address") },
+                            placeholder = { Text("e.g. john@example.com", color = Color(0xFFBBBBBB)) },
                             leadingIcon = {
                                 Icon(Icons.Default.Email, contentDescription = null, tint = DeepBlue)
                             },
@@ -174,23 +194,27 @@ fun LoginScreen(
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = DeepBlue,
                                 unfocusedBorderColor = Color(0xFFDDE3F5),
                                 cursorColor = DeepBlue,
                                 focusedLabelColor = DeepBlue,
-                                textColor = Color.Black,
-                                backgroundColor = Color.Transparent
+                                unfocusedLabelColor = Color.Gray,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
+                                unfocusedContainerColor = Color(0xFFF8F9FF),
+                                focusedContainerColor = Color(0xFFF8F9FF)
                             )
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Password field
+                        // ── Password ──────────────────────────────────────────
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
                             label = { Text("Password") },
+                            placeholder = { Text("Enter your password", color = Color(0xFFBBBBBB)) },
                             leadingIcon = {
                                 Icon(Icons.Default.Lock, contentDescription = null, tint = DeepBlue)
                             },
@@ -207,58 +231,76 @@ fun LoginScreen(
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = DeepBlue,
                                 unfocusedBorderColor = Color(0xFFDDE3F5),
                                 cursorColor = DeepBlue,
                                 focusedLabelColor = DeepBlue,
-                                textColor = Color.Black,
-                                backgroundColor = Color.Transparent
+                                unfocusedLabelColor = Color.Gray,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
+                                unfocusedContainerColor = Color(0xFFF8F9FF),
+                                focusedContainerColor = Color(0xFFF8F9FF)
                             )
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // ── Remember Me ──────────────────────────────────────
+                        // ── Remember Me & Forgot Password ─────────────────────
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Checkbox(
-                                checked = rememberMe,
-                                onCheckedChange = { rememberMe = it },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = DeepBlue,
-                                    uncheckedColor = Color.Gray,
-                                    checkmarkColor = Color.White
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = rememberMe,
+                                    onCheckedChange = { rememberMe = it },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = DeepBlue,
+                                        uncheckedColor = Color.Gray,
+                                        checkmarkColor = Color.White
+                                    )
                                 )
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Remember me for 7 days",
-                                style = MaterialTheme.typography.body2,
-                                color = Color(0xFF444444)
-                            )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Remember me",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF444444)
+                                )
+                            }
+                            TextButton(
+                                onClick = { navController.navigate(Screen.ForgotPassword.route) },
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text(
+                                    "Forgot password?",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Amber,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
 
-                        // Error
+                        // ── Error ─────────────────────────────────────────────
                         error?.let {
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = it,
-                                color = MaterialTheme.colors.error,
-                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 6.dp)
+                                    .padding(bottom = 4.dp)
                             )
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Login Button
+                        // ── Sign In Button ────────────────────────────────────
                         if (isLoading) {
                             CircularProgressIndicator(color = DeepBlue)
                         } else {
@@ -270,7 +312,7 @@ fun LoginScreen(
                                 shape = RoundedCornerShape(16.dp),
                                 enabled = email.isNotBlank() && password.isNotBlank(),
                                 colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = DeepBlue,
+                                    containerColor = DeepBlue,
                                     contentColor = Color.White
                                 )
                             ) {
@@ -281,13 +323,100 @@ fun LoginScreen(
                                 )
                             }
                         }
+
+                        // ── OR divider ────────────────────────────────────────
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
+                            Text(text = "  OR  ", color = Color.Gray, fontSize = 12.sp)
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // ── Continue with Google ──────────────────────────────
+                        OutlinedButton(
+                            onClick = {
+                                googleLoading = true
+                                viewModel.clearError()
+                                coroutineScope.launch {
+                                    try {
+                                        val credentialManager = CredentialManager.create(context)
+                                        val googleIdOption = GetGoogleIdOption.Builder()
+                                            .setFilterByAuthorizedAccounts(false)
+                                            .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                                            .setAutoSelectEnabled(false)
+                                            .build()
+                                        val request = GetCredentialRequest.Builder()
+                                            .addCredentialOption(googleIdOption)
+                                            .build()
+                                        val result = credentialManager.getCredential(
+                                            request = request,
+                                            context = context
+                                        )
+                                        val credential = result.credential
+                                        if (credential is CustomCredential &&
+                                            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                                        ) {
+                                            val googleIdTokenCredential =
+                                                GoogleIdTokenCredential.createFrom(credential.data)
+                                            val idToken = googleIdTokenCredential.idToken
+                                            viewModel.signInWithGoogle(idToken, rememberMe)
+                                        } else {
+                                            googleLoading = false
+                                            viewModel.setExternalError("Unexpected credential type")
+                                        }
+                                    } catch (e: GetCredentialCancellationException) {
+                                        googleLoading = false
+                                    } catch (e: NoCredentialException) {
+                                        googleLoading = false
+                                        Toast.makeText(context, "No Google accounts found on device.", Toast.LENGTH_LONG).show()
+                                    } catch (e: Exception) {
+                                        googleLoading = false
+                                        val msg = e.message ?: "Google Sign-In failed"
+                                        viewModel.setExternalError(msg)
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            enabled = !googleLoading && !isLoading,
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
+                        ) {
+                            if (googleLoading) {
+                                CircularProgressIndicator(
+                                    color = DeepBlue,
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    "G",
+                                    color = Color(0xFF4285F4),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 18.sp
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = "Continue with Google",
+                                    color = Color.Black,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Register link
+            // ── Register link ─────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(tween(1000, delayMillis = 400))

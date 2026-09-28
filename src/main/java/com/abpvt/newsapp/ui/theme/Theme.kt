@@ -2,13 +2,15 @@ package com.abpvt.newsapp.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Shapes
-import androidx.compose.material.darkColors
-import androidx.compose.material.lightColors
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+
+// ── M3 Color Schemes ─────────────────────────────────────────────────────────
 
 private val AppShapes = Shapes(
     small  = RoundedCornerShape(8.dp),
@@ -16,32 +18,40 @@ private val AppShapes = Shapes(
     large  = RoundedCornerShape(24.dp)
 )
 
-private val DarkColorPalette = darkColors(
+private val DarkColorScheme = darkColorScheme(
     primary          = DeepBlue,
-    primaryVariant   = DeepBlueDark,
-    secondary        = Amber,
-    secondaryVariant = AmberDark,
-    background       = DarkBackground,
-    surface          = DarkCard,
     onPrimary        = Color.White,
+    primaryContainer = DeepBlueDark,
+    secondary        = Amber,
     onSecondary      = Color.Black,
+    secondaryContainer = AmberDark,
+    background       = DarkBackground,
     onBackground     = Color.White,
+    surface          = DarkCard,
     onSurface        = Color.White,
-    error            = DownvoteActive
+    surfaceVariant   = DarkCard,
+    error            = DownvoteActive,
+    onError          = Color.White,
+    outline          = Color(0xFF3A3A5C),
+    outlineVariant   = Color(0xFF2E2E4A)
 )
 
-private val LightColorPalette = lightColors(
+private val LightColorScheme = lightColorScheme(
     primary          = DeepBlue,
-    primaryVariant   = DeepBlueDark,
-    secondary        = Amber,
-    secondaryVariant = AmberDark,
-    background       = LightBackground,
-    surface          = LightCard,
     onPrimary        = Color.White,
+    primaryContainer = Color(0xFFD3E4FF),
+    secondary        = Amber,
     onSecondary      = Color.Black,
+    secondaryContainer = Color(0xFFFFE0A0),
+    background       = LightBackground,
     onBackground     = TitleText,
+    surface          = LightCard,
     onSurface        = TitleText,
-    error            = DownvoteActive
+    surfaceVariant   = Color(0xFFEFF2FA),
+    error            = DownvoteActive,
+    onError          = Color.White,
+    outline          = Color(0xFFDDE3F5),
+    outlineVariant   = Color(0xFFE8EDF5)
 )
 
 @Composable
@@ -49,12 +59,12 @@ fun NewsappTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colors = if (darkTheme) DarkColorPalette else LightColorPalette
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
-        colors     = colors,
-        typography = Typography,
-        shapes     = AppShapes,
-        content    = content
+        colorScheme = colorScheme,
+        typography  = Typography,
+        shapes      = AppShapes,
+        content     = content
     )
 }

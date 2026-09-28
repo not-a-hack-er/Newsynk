@@ -1,21 +1,34 @@
 package com.abpvt.newsapp.ui.news
 
 import android.content.Intent
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.runtime.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,23 +42,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
 import com.abpvt.newsapp.data.model.Article
 import com.abpvt.newsapp.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Local color definitions
-private val NewsCardBg    = Color(0xFFFFFFFF)
-private val CardShadow    = Color(0x14000000)
-
 @Composable
 fun NewsItem(
     article: Article,
     onArticleClick: () -> Unit,
     onCommentClick: () -> Unit,
-    interactionViewModel: ArticleInteractionViewModel = viewModel()
+    coverageCount: Int = 1,
+    onCoverageClick: () -> Unit = {},
+    interactionViewModel: ArticleInteractionViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
 
@@ -62,7 +73,6 @@ fun NewsItem(
     val isDownvoted  = userVote == false
     val isBookmarked = interactionState?.isBookmarked == true
 
-    // ── Press feedback: scale down card when pressed ──────────────────────────
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val cardScale by animateFloatAsState(
@@ -70,8 +80,6 @@ fun NewsItem(
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "card_scale"
     )
-
-    // ── Bookmark pulse ────────────────────────────────────────────────────────
     val bookmarkScale by animateFloatAsState(
         targetValue = if (isBookmarked) 1f else 0.85f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
@@ -79,9 +87,9 @@ fun NewsItem(
     )
 
     Card(
-        elevation = 4.dp,
         shape = RoundedCornerShape(20.dp),
-        backgroundColor = MaterialTheme.colors.surface,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier
             .fillMaxWidth()
             .scale(cardScale)
@@ -119,8 +127,6 @@ fun NewsItem(
                         }
                     }
                 )
-
-                // Gradient overlay at the bottom of image for text contrast
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -134,13 +140,11 @@ fun NewsItem(
                 )
             }
 
-            // ── Content Section ───────────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                // Source badge + time row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -152,35 +156,56 @@ fun NewsItem(
                     ) {
                         Text(
                             text = article.source.name,
-                            style = MaterialTheme.typography.caption.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 11.sp
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold
                             ),
                             color = getSourceBadgeColor(article.source.name),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
-
-                    Text(
-                        text = formatPublishedTime(article.publishedAt),
-                        style = MaterialTheme.typography.caption.copy(fontSize = 11.sp),
-                        color = MetadataText
-                    )
+                    if (coverageCount > 1) {
+                        AssistChip(
+                            onClick = onCoverageClick,
+                            label = { Text("$coverageCount sources") },
+                            modifier = Modifier.height(30.dp)
+                        )
+                    } else if (article.isOffline) {
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text("Offline") },
+                            modifier = Modifier.height(30.dp)
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val readTimeMin = com.abpvt.newsapp.utils.ReadingTimeCalculator.calculateMinutes(
+                            article.title, article.description, article.content
+                        )
+                        Text(
+                            text = "⏱️ ${readTimeMin}m read",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MetadataText
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = formatPublishedTime(article.publishedAt),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MetadataText
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Title
                 Text(
                     text = article.title,
-                    style = MaterialTheme.typography.h6.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
                         lineHeight = 24.sp
                     ),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colors.onSurface
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 val description = article.description
@@ -188,21 +213,25 @@ fun NewsItem(
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = description,
-                        style = MaterialTheme.typography.body2.copy(
-                            fontSize = 13.sp,
-                            lineHeight = 19.sp
-                        ),
+                        style = MaterialTheme.typography.bodySmall.copy(lineHeight = 19.sp),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
-
-                Divider(color = DividerColor.copy(alpha = 0.5f))
-
+                HorizontalDivider(color = DividerColor.copy(alpha = 0.5f))
                 Spacer(modifier = Modifier.height(10.dp))
+
+                var showShareDialog by remember { mutableStateOf(false) }
+
+                if (showShareDialog) {
+                    com.abpvt.newsapp.ui.news.components.ShareStoryDialog(
+                        article = article,
+                        onDismiss = { showShareDialog = false }
+                    )
+                }
 
                 // ── Action Bar ────────────────────────────────────────────────
                 Row(
@@ -213,7 +242,8 @@ fun NewsItem(
                     // Vote pill
                     Surface(
                         shape = RoundedCornerShape(24.dp),
-                        color = if (MaterialTheme.colors.isLight) ButtonBackground else Color.White.copy(alpha = 0.1f)
+                        color = if (MaterialTheme.colorScheme.background == Color(0xFFF4F6FB))
+                            ButtonBackground else Color.White.copy(alpha = 0.1f)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -236,12 +266,11 @@ fun NewsItem(
                                 fontSize = 14.sp,
                                 color = if (isUpvoted) UpvoteActive else IconInactive
                             )
-                            Divider(
+                            VerticalDivider(
                                 color = DividerColor,
                                 modifier = Modifier
                                     .padding(horizontal = 8.dp)
                                     .height(18.dp)
-                                    .width(1.dp)
                             )
                             IconButton(
                                 onClick = { interactionViewModel.vote(article.url, false) },
@@ -260,7 +289,8 @@ fun NewsItem(
                     // Comment pill
                     Surface(
                         shape = RoundedCornerShape(24.dp),
-                        color = if (MaterialTheme.colors.isLight) ButtonBackground else Color.White.copy(alpha = 0.1f),
+                        color = if (MaterialTheme.colorScheme.background == Color(0xFFF4F6FB))
+                            ButtonBackground else Color.White.copy(alpha = 0.1f),
                         modifier = Modifier.clickable { onCommentClick() }
                     ) {
                         Row(
@@ -290,14 +320,7 @@ fun NewsItem(
 
                     // Share
                     IconButton(
-                        onClick = {
-                            val shareIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type   = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "${article.title}\n${article.url}")
-                            }
-                            context.startActivity(Intent.createChooser(shareIntent, "Share Article"))
-                        },
+                        onClick = { showShareDialog = true },
                         modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
@@ -313,7 +336,6 @@ fun NewsItem(
     }
 }
 
-// ── Shimmer Loading Placeholder ───────────────────────────────────────────────
 @Composable
 private fun ShimmerBox() {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
@@ -326,7 +348,6 @@ private fun ShimmerBox() {
         ),
         label = "shimmer_x"
     )
-
     Box(
         modifier = Modifier
             .fillMaxSize()

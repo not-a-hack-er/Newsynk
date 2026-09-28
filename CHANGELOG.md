@@ -1,0 +1,23 @@
+# Changelog
+
+All notable changes to Newsynk will be documented here.
+
+## 2.0.0 - Unreleased
+
+- Added multi-provider aggregation using The Guardian, GNews, and Currents.
+- Added category browsing, search, pagination, and pull-to-refresh.
+- Added Google sign-in and password reset.
+- Added an expanded article reader, executive takeaways, reading-time estimates, and story-card sharing.
+- Added notification categories, quiet hours, daily digests, and notification deep links.
+- Added a personalized For You feed, topic onboarding, recent searches, and a configurable briefing time.
+- Added Room-powered offline feeds with seven-day cache retention.
+- Added story clustering and a multi-source Compare Coverage experience.
+- Added Home, Explore, Saved, and Profile bottom navigation.
+- Added reader palettes, typography controls, text-to-speech, translation handoff, and source transparency.
+- Added comment reporting, local user blocking, input limits, and posting cooldowns.
+- Added an App Check-protected Firebase Functions proxy so release APKs contain no provider credentials.
+- Added privacy opt-in analytics, Crashlytics, Performance Monitoring, and Play Integrity App Check.
+- Added Firestore emulator rules tests, Compose UI tests, notification deep-link tests, a baseline-profile generator, and a cold-start macrobenchmark.
+- Added Hilt dependency injection and a standalone Gradle project configuration.
+- Added automated unit tests, CI builds, and tagged-release automation.
+- Removed unrelated leftover test and theme artifacts.

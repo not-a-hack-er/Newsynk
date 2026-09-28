@@ -1,3 +1,25 @@
-/build
+# Gradle / Android build output
+.gradle/
+/build/
+**/build/
+
+# Local SDK paths and API/signing configuration
+local.properties
+google-services.json
+*.jks
+*.keystore
+
+# Android Studio / IntelliJ local state
+.idea/
+*.iml
+
+# Generated packages and diagnostics
+*.apk
+*.aab
+*.apks
 *.log
 *.txt
+
+# OS metadata
+.DS_Store
+Thumbs.db

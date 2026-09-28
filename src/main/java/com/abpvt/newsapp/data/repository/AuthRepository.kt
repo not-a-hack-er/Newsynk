@@ -5,8 +5,11 @@ import com.abpvt.newsapp.utils.Resource
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AuthRepository {
+@Singleton
+class AuthRepository @Inject constructor() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
     /** Sign up a new user with email and password. */

@@ -3,23 +3,25 @@ package com.abpvt.newsapp.ui.comments
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.abpvt.newsapp.data.model.Comment
+import com.abpvt.newsapp.ui.theme.DeepBlue
 import com.google.firebase.auth.FirebaseAuth
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommentScreen(
     articleId: String,
-    commentViewModel: CommentViewModel = viewModel(),
+    commentViewModel: CommentViewModel = hiltViewModel(),
     onBack: (() -> Unit)? = null
 ) {
     LaunchedEffect(articleId) {
@@ -42,13 +44,17 @@ fun CommentScreen(
                 navigationIcon = if (onBack != null) {
                     {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     }
-                } else null,
-                backgroundColor = MaterialTheme.colors.primary,
-                contentColor = Color.White,
-                elevation = 4.dp
+                } else {
+                    {}
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DeepBlue,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
             )
         }
     ) { paddingValues ->
@@ -64,10 +70,8 @@ fun CommentScreen(
             if (error != null) {
                 Text(
                     text = error ?: "",
-                    color = MaterialTheme.colors.error,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 )
             }
 
@@ -77,17 +81,15 @@ fun CommentScreen(
             }
 
             // Comments list
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
+            LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 items(comments) { comment ->
                     CommentItem(
                         comment = comment,
                         currentUserId = currentUserId,
                         onVote = { isUpvote -> commentViewModel.vote(comment.id, isUpvote) },
-                        onReply = { commentViewModel.setReplyingTo(comment) }
+                        onReply = { commentViewModel.setReplyingTo(comment) },
+                        onReport = { commentViewModel.report(comment) },
+                        onBlock = { commentViewModel.block(comment) }
                     )
                 }
             }
@@ -97,32 +99,29 @@ fun CommentScreen(
             // Reply banner
             if (replyingTo != null) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Replying to @${replyingTo?.username}",
-                        style = MaterialTheme.typography.caption,
-                        color = MaterialTheme.colors.primary
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                    TextButton(onClick = { commentViewModel.clearReply() }) {
-                        Text("Cancel")
-                    }
+                    TextButton(onClick = { commentViewModel.clearReply() }) { Text("Cancel") }
                 }
             }
 
             // Input field
             OutlinedTextField(
                 value = newComment,
-                onValueChange = { newComment = it },
+                onValueChange = { if (it.length <= 1000) newComment = it },
                 label = { Text(if (replyingTo != null) "Add a reply" else "Add a comment") },
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = MaterialTheme.colors.onSurface,
-                    backgroundColor = Color.Transparent
+                supportingText = { Text("${newComment.length}/1000") },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = DeepBlue,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
             )
 
@@ -141,4 +140,3 @@ fun CommentScreen(
         }
     }
 }
-

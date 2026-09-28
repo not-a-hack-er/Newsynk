@@ -7,7 +7,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 import com.abpvt.newsapp.utils.Resource
-import java.util.Base64
+import android.util.Base64
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class ArticleInteractionState(
     val upvotes: Int = 0,
@@ -16,13 +18,17 @@ data class ArticleInteractionState(
     val isBookmarked: Boolean = false
 )
 
-class InteractionRepository {
+@Singleton
+class InteractionRepository @Inject constructor() {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     
     // Use Base64 encoding for article URLs to use them as document IDs safely
     private fun encodeUrl(url: String): String {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(url.toByteArray())
+        return Base64.encodeToString(
+            url.toByteArray(),
+            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
+        )
     }
 
     /** View interaction state for a specific article. */
@@ -37,7 +43,12 @@ class InteractionRepository {
         return try {
             // Get votes
             val voteDoc = db.collection("article_votes").document(encodedUrl).get().await()
-            val voters = voteDoc.get("voters") as? Map<String, Boolean> ?: emptyMap()
+            val voters = (voteDoc.get("voters") as? Map<*, *>)
+                ?.mapNotNull { (key, value) ->
+                    if (key is String && value is Boolean) key to value else null
+                }
+                ?.toMap()
+                ?: emptyMap()
             
             var upvotes = 0
             var downvotes = 0
@@ -73,7 +84,13 @@ class InteractionRepository {
         return try {
             val updatedState = db.runTransaction { transaction ->
                 val snapshot = transaction.get(voteRef)
-                val voters = (snapshot.get("voters") as? MutableMap<String, Boolean>) ?: mutableMapOf()
+                val voters = (snapshot.get("voters") as? Map<*, *>)
+                    ?.mapNotNull { (key, value) ->
+                        if (key is String && value is Boolean) key to value else null
+                    }
+                    ?.toMap()
+                    ?.toMutableMap()
+                    ?: mutableMapOf()
                 
                 val previousVote = voters[userId]
                 if (previousVote == isUpvote) {

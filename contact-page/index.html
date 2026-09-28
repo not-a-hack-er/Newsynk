@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Akarsh Bajpai - Contact</title>
+  <meta name="description" content="Contact Akarsh Bajpai, Android developer and creator of Newsynk." />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d14; --card: #1a1a2e; --accent: #7c3aed;
+      --accent2: #a855f7; --text: #f1f0f9; --muted: #9390b0;
+      --border: rgba(124,58,237,0.2);
+    }
+    body {
+      font-family: 'Outfit', sans-serif; background: var(--bg);
+      color: var(--text); min-height: 100vh; display: flex;
+      align-items: center; justify-content: center; padding: 2rem 1rem;
+    }
+    body::before {
+      content: ''; position: fixed; top: -30%; left: -20%;
+      width: 60vw; height: 60vw;
+      background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+      border-radius: 50%; pointer-events: none;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    body::after {
+      content: ''; position: fixed; bottom: -20%; right: -15%;
+      width: 50vw; height: 50vw;
+      background: radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 70%);
+      border-radius: 50%; pointer-events: none;
+      animation: drift 15s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(3%,5%) scale(1.05); } }
+    .card {
+      position: relative; background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 3rem 2.5rem; max-width: 480px; width: 100%;
+      text-align: center; box-shadow: 0 0 80px rgba(124,58,237,0.1), 0 24px 48px rgba(0,0,0,0.5);
+      animation: fadeUp 0.7s ease both; z-index: 1;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .avatar {
+      width: 88px; height: 88px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.2rem; margin: 0 auto 1.25rem;
+      animation: pulse 3s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 4px rgba(124,58,237,0.25), 0 8px 24px rgba(124,58,237,0.3); }
+      50% { box-shadow: 0 0 0 8px rgba(124,58,237,0.1), 0 8px 36px rgba(124,58,237,0.45); }
+    }
+    .badge {
+      display: inline-block; background: rgba(124,58,237,0.15);
+      border: 1px solid rgba(124,58,237,0.35); color: var(--accent2);
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 0.3rem 0.9rem;
+      border-radius: 100px; margin-bottom: 0.75rem;
+    }
+    h1 {
+      font-size: 1.9rem; font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 0.4rem;
+    }
+    .tagline { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; line-height: 1.6; }
+    .divider { height: 1px; background: var(--border); margin: 1.75rem 0; }
+    .contact-list { list-style: none; display: flex; flex-direction: column; gap: 0.85rem; }
+    .contact-list li a {
+      display: flex; align-items: center; gap: 1rem; padding: 1rem 1.1rem;
+      border-radius: 14px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06); text-decoration: none;
+      color: var(--text); font-size: 0.95rem; font-weight: 500; transition: all 0.25s ease;
+    }
+    .contact-list li a:hover {
+      background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.45);
+      transform: translateX(5px);
+    }
+    .icon {
+      width: 40px; height: 40px; border-radius: 11px; display: flex;
+      align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;
+    }
+    .icon-email { background: rgba(59,130,246,0.15); }
+    .icon-github { background: rgba(255,255,255,0.08); }
+    .icon-app { background: rgba(124,58,237,0.15); }
+    .contact-meta { text-align: left; }
+    .contact-meta span { display: block; font-size: 0.73rem; color: var(--muted); margin-top: 0.18rem; }
+    .footer { margin-top: 1.5rem; font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+    .footer strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="avatar">&#128104;</div>
+    <div class="badge">Android Developer</div>
+    <h1>Akarsh Bajpai</h1>
+    <p class="tagline">
+      Building premium Android experiences.<br/>
+      Creator of <strong style="color:#e2d9f3">Newsynk</strong> &mdash; your smart news companion.
+    </p>
+    <div class="divider"></div>
+    <ul class="contact-list">
+      <li>
+        <a href="mailto:letnewsynk@gmail.com" id="email-link">
+          <div class="icon icon-email">&#128231;</div>
+          <div class="contact-meta">letnewsynk@gmail.com<span>Best way to reach me</span></div>
+        </a>
+      </li>
+      <li>
+        <a href="https://github.com/not-a-hack-er" target="_blank" rel="noopener" id="github-link">
+          <div class="icon icon-github">&#128025;</div>
+          <div class="contact-meta">github.com/not-a-hack-er<span>Open source &amp; projects</span></div>
+        </a>
+      </li>
+      <li>
+        <a href="https://play.google.com/store/apps/developer?id=Akarsh+Bajpai" target="_blank" rel="noopener" id="playstore-link">
+          <div class="icon icon-app">&#128241;</div>
+          <div class="contact-meta">Newsynk on Google Play<span>My published Android app</span></div>
+        </a>
+      </li>
+    </ul>
+    <div class="divider"></div>
+    <p class="footer">For queries or support, email me directly.<br/>Response within <strong>24-48 hours</strong>.</p>
+  </div>
+</body>
+</html>

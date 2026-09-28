@@ -20,8 +20,9 @@ interface NewsApiService {
      */
     @GET("search")
     suspend fun getTopHeadlines(
+        @Query("page")        page: Int = 1,
         @Query("order-by")    orderBy: String = "newest",
-        @Query("show-fields") showFields: String = "thumbnail,trailText,byline",
+        @Query("show-fields") showFields: String = "thumbnail,trailText,byline,bodyText",
         @Query("page-size")   pageSize: Int = 30,
         @Query("api-key")     apiKey: String = Constants.NEWS_API_KEY
     ): Response<NewsResponse>
@@ -32,8 +33,9 @@ interface NewsApiService {
     @GET("search")
     suspend fun getLatestNews(
         @Query("q")           query: String,
+        @Query("page")        page: Int = 1,
         @Query("order-by")    orderBy: String = "newest",
-        @Query("show-fields") showFields: String = "thumbnail,trailText,byline",
+        @Query("show-fields") showFields: String = "thumbnail,trailText,byline,bodyText",
         @Query("page-size")   pageSize: Int = 30,
         @Query("api-key")     apiKey: String = Constants.NEWS_API_KEY
     ): Response<NewsResponse>
@@ -44,6 +46,7 @@ interface NewsApiService {
     @GET("search")
     suspend fun getBySection(
         @Query("section")     section: String,
+        @Query("page")        page: Int = 1,
         @Query("order-by")    orderBy: String = "newest",
         @Query("show-fields") showFields: String = "thumbnail,trailText,byline",
         @Query("page-size")   pageSize: Int = 30,

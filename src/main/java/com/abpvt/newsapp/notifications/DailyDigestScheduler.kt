@@ -1,7 +1,19 @@
 package com.abpvt.newsapp.notifications
 
 import android.content.Context
-import androidx.work.*
+import androidx.hilt.work.HiltWorker
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
+import com.abpvt.newsapp.data.repository.NewsRepository
+import com.abpvt.newsapp.data.repository.PersonalizationRepository
+import com.abpvt.newsapp.utils.Resource
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -36,7 +48,7 @@ object DailyDigestScheduler {
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             WORK_TAG,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request
         )
     }
@@ -47,27 +59,50 @@ object DailyDigestScheduler {
 }
 
 /**
- * WorkManager worker that posts the digest notification.
- * In a real app this would fetch headlines from the API.
- * Here we post a well-formatted sample digest.
+ * CoroutineWorker that fetches real top headlines from [NewsRepository]
+ * and posts them as the morning digest notification.
+ *
+ * Uses @HiltWorker + @AssistedInject so Hilt can inject [NewsRepository]
+ * without needing a manual factory.
  */
-class DigestWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
+@HiltWorker
+class DigestWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val newsRepository: NewsRepository,
+    private val personalizationRepository: PersonalizationRepository
+) : CoroutineWorker(context, params) {
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         val prefs = applicationContext.getSharedPreferences(
             NotificationsPrefs.PREFS_NAME, Context.MODE_PRIVATE
         )
         if (!prefs.getBoolean(NotificationsPrefs.KEY_NOTIF_DIGEST, true)) return Result.success()
 
-        // Sample headlines — replace with actual API call in production
-        val headlines = listOf(
-            "Top markets rally as inflation cools",
-            "India set to launch new space mission",
-            "AI breakthrough in medical diagnostics",
-            "Champions League: Quarter-finals set",
-            "New climate deal reached at summit"
-        )
+        // Fetch real headlines from the API
+        val headlines: List<String> = try {
+            when (val res = newsRepository.getPersonalizedNews(
+                personalizationRepository.followedTopicsSnapshot(),
+                page = 1
+            )) {
+                is Resource.Success -> {
+                    res.data
+                        ?.take(5)
+                        ?.mapNotNull { it.title.takeIf { t -> t.isNotBlank() } }
+                        ?: fallbackHeadlines()
+                }
+                else -> fallbackHeadlines()
+            }
+        } catch (e: Exception) {
+            fallbackHeadlines()
+        }
+
         NotificationHelper.postDailyDigest(applicationContext, headlines)
         return Result.success()
     }
+
+    private fun fallbackHeadlines(): List<String> = listOf(
+        "Good morning! Your daily news digest is ready.",
+        "Open Newsynk to catch up on today's top stories."
+    )
 }

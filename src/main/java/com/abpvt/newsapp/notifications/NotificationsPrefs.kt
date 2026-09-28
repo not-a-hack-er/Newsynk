@@ -22,6 +22,8 @@ object NotificationsPrefs {
     const val KEY_NOTIF_ENTERTAINMENT = "notif_entertainment"
     const val KEY_NOTIF_COMMENTS     = "notif_comments"   // comment-reply alerts
     const val KEY_NOTIF_DIGEST       = "notif_daily_digest"
+    const val KEY_ANALYTICS_CONSENT  = "analytics_consent"
+    const val KEY_DIGEST_HOUR        = "digest_hour"
 
     // ── Quiet hours ───────────────────────────────────────────────────────────
     const val KEY_QUIET_HOURS_ENABLED = "quiet_hours_enabled"

@@ -1,64 +1,317 @@
 package com.abpvt.newsapp.data.repository
 
 import com.abpvt.newsapp.data.model.Article
+import com.abpvt.newsapp.data.local.ArticleCacheDao
+import com.abpvt.newsapp.data.local.toArticle
+import com.abpvt.newsapp.data.local.toCacheEntity
+import com.abpvt.newsapp.data.remote.CurrentsApiService
+import com.abpvt.newsapp.data.remote.GNewsApiService
 import com.abpvt.newsapp.data.remote.NewsApiService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import retrofit2.HttpException
-import java.io.IOException
+import com.abpvt.newsapp.data.remote.BackendNewsApiService
+import com.abpvt.newsapp.utils.Constants
 import com.abpvt.newsapp.utils.Resource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class NewsRepository(private val apiService: NewsApiService) {
+@Singleton
+class NewsRepository @Inject constructor(
+    private val guardianService: NewsApiService,
+    private val gNewsService: GNewsApiService,
+    private val currentsService: CurrentsApiService,
+    private val backendService: BackendNewsApiService,
+    private val cacheDao: ArticleCacheDao
+) {
 
-    /** Fetch top headlines from the News API. */
-    suspend fun getTopHeadlines(country: String = "us"): Resource<List<Article>> {
+    suspend fun getPersonalizedNews(topics: Set<String>, page: Int = 1): Resource<List<Article>> {
+        val selected = topics.ifEmpty { setOf("Technology", "World", "Business") }.take(4)
+        val feedKey = "for-you:${selected.map { it.lowercase() }.sorted().joinToString("-")}:$page"
+        return try {
+            val articles = coroutineScope {
+                selected.map { topic ->
+                    async {
+                        when (val result = getCategoryNews(topic, page)) {
+                            is Resource.Success -> result.data.orEmpty()
+                            else -> emptyList()
+                        }
+                    }
+                }.flatMap { it.await() }
+            }
+                .distinctBy { it.url }
+                .sortedWith(
+                    compareByDescending<Article> { article ->
+                        selected.count { topic ->
+                            article.sectionName.contains(topic, true) ||
+                                article.title.contains(topic, true) ||
+                                article.description?.contains(topic, true) == true
+                        }
+                    }.thenByDescending { it.publishedAt }
+                )
+            deliver(feedKey, articles, "Your personalized feed is not available right now.")
+        } catch (e: Exception) {
+            cachedOrError(feedKey, e.message ?: "Your personalized feed is not available right now.")
+        }
+    }
+
+    /**
+     * Fetch top headlines across all 3 APIs in parallel and merge in weighted round-robin.
+     */
+    suspend fun getTopHeadlines(page: Int = 1): Resource<List<Article>> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getTopHeadlines(country)
-                if (response.isSuccessful) {
-                    val newsResponse = response.body()
-                    if (newsResponse != null) {
-                        Resource.Success(newsResponse.articles)
-                    } else {
-                        Resource.Error("Empty response")
-                    }
-                } else {
-                    // API returned an error code
-                    Resource.Error("HTTP ${response.code()}: ${response.message()}")
+                if (Constants.USE_SECURE_BACKEND) {
+                    val articles = safeCall { backendService.getFeed(page = page) }?.articles.orEmpty()
+                    return@withContext deliver("top:$page", articles, "No articles available. Please check your connection.")
                 }
-            } catch (e: HttpException) {
-                // Non-2xx HTTP response as exception
-                Resource.Error("Network error: ${e.message()}")
-            } catch (e: IOException) {
-                // IO/network problem (no connection, timeout, etc.)
-                Resource.Error("Network error: Please check your connection")
+                val guardianDeferred  = async { fetchGuardianHeadlines(page) }
+                val gNewsDeferred     = async { fetchGNewsHeadlines(page) }
+                val currentsDeferred  = async { fetchCurrentsHeadlines(page) }
+
+                val guardianArticles  = guardianDeferred.await()
+                val gNewsArticles     = gNewsDeferred.await()
+                val currentsArticles  = currentsDeferred.await()
+
+                val merged = weightedMerge(guardianArticles, gNewsArticles, currentsArticles)
+
+                deliver("top:$page", merged, "No articles available. Please check your connection.")
             } catch (e: Exception) {
-                // Unknown or unexpected exception
-                Resource.Error(e.message ?: "Unknown error occurred")
-            }
+                cachedOrError("top:$page", e.message ?: "Unknown error occurred")
             }
         }
-// Removed extra brace
+    }
 
-    /** Fetch latest news sorted by publication time. */
-    suspend fun getLatestNews(query: String = "general"): Resource<List<Article>> {
+    /**
+     * Fetch category-specific articles across all 3 APIs in parallel.
+     * Category slugs: "technology", "business", "sports", "health", "world", "entertainment".
+     */
+    suspend fun getCategoryNews(category: String, page: Int = 1): Resource<List<Article>> {
+        if (category.equals("All", ignoreCase = true)) return getTopHeadlines(page)
+
+        val catLower = category.lowercase()
+
+        // Map category to Guardian section name
+        val guardianSection = when (catLower) {
+            "tech", "technology" -> "technology"
+            "business"           -> "business"
+            "sports", "sport"    -> "sport"
+            "health"             -> "society"
+            "world"              -> "world"
+            "entertainment"      -> "culture"
+            else                 -> catLower
+        }
+
+        // Map category to GNews category
+        val gNewsCategory = when (catLower) {
+            "tech", "technology" -> "technology"
+            "business"           -> "business"
+            "sports", "sport"    -> "sports"
+            "health"             -> "health"
+            "world"              -> "world"
+            "entertainment"      -> "entertainment"
+            else                 -> catLower
+        }
+
+        // Map category to Currents category
+        val currentsCategory = when (catLower) {
+            "tech", "technology" -> "technology"
+            "business"           -> "business"
+            "sports", "sport"    -> "sports"
+            "health"             -> "health"
+            "world"              -> "regional"
+            "entertainment"      -> "entertainment"
+            else                 -> catLower
+        }
+
         return withContext(Dispatchers.IO) {
             try {
-                // Use the new endpoint with sortBy=publishedAt
-                val response = apiService.getLatestNews(query)
-                if (response.isSuccessful) {
-                    val newsResponse = response.body()
-                    if (newsResponse != null) {
-                        Resource.Success(newsResponse.articles)
+                if (Constants.USE_SECURE_BACKEND) {
+                    val articles = safeCall {
+                        backendService.getFeed(page = page, category = catLower)
+                    }?.articles.orEmpty()
+                    return@withContext deliver(
+                        "category:$catLower:$page",
+                        articles,
+                        "No $category stories are available right now."
+                    )
+                }
+                val guardianDeferred = async {
+                    safeCall { guardianService.getBySection(section = guardianSection, page = page) }
+                        ?.articles ?: emptyList()
+                }
+
+                val gNewsDeferred = async {
+                    safeCall { gNewsService.getTopHeadlines(category = gNewsCategory, page = page) }
+                        ?.articles?.map { it.toArticle() } ?: emptyList()
+                }
+
+                val currentsDeferred = async {
+                    safeCall { currentsService.getByCategory(category = currentsCategory, page = page) }
+                        ?.news?.map { it.toArticle() } ?: emptyList()
+                }
+
+                val merged = weightedMerge(
+                    guardian = guardianDeferred.await(),
+                    gNews    = gNewsDeferred.await(),
+                    currents = currentsDeferred.await()
+                )
+
+                if (merged.isEmpty()) {
+                    // Fallback to keyword search if section returned no results
+                    val fallback = getLatestNews(query = category, page = page)
+                    if (fallback is Resource.Success) {
+                        val articles = fallback.data.orEmpty()
+                        cache("category:$catLower:$page", articles)
+                        Resource.Success(articles)
                     } else {
-                        Resource.Error("Empty response")
+                        cachedOrError("category:$catLower:$page", "No $category stories are available right now.")
                     }
                 } else {
-                    Resource.Error("HTTP ${response.code()}: ${response.message()}")
+                    deliver("category:$catLower:$page", merged, "No $category stories are available right now.")
                 }
             } catch (e: Exception) {
-                Resource.Error(e.message ?: "Unknown error occurred")
+                cachedOrError("category:$catLower:$page", e.message ?: "Failed to load $category news")
             }
         }
+    }
+
+    /**
+     * Search across all 3 APIs simultaneously and round-robin the results.
+     */
+    suspend fun getLatestNews(query: String = "general", page: Int = 1): Resource<List<Article>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (Constants.USE_SECURE_BACKEND) {
+                    val articles = safeCall {
+                        backendService.getFeed(page = page, query = query)
+                    }?.articles.orEmpty()
+                    return@withContext deliver(
+                        "search:${query.trim().lowercase()}:$page",
+                        articles,
+                        "No results found for \"$query\""
+                    )
+                }
+                val guardianDeferred = async {
+                    safeCall { guardianService.getLatestNews(query = query, page = page) }
+                        ?.articles ?: emptyList()
+                }
+                val gNewsDeferred = async {
+                    safeCall { gNewsService.searchNews(query = query, page = page) }
+                        ?.articles?.map { it.toArticle() } ?: emptyList()
+                }
+                val currentsDeferred = async {
+                    safeCall { currentsService.searchNews(keywords = query, page = page) }
+                        ?.news?.map { it.toArticle() } ?: emptyList()
+                }
+
+                val merged = weightedMerge(
+                    guardian = guardianDeferred.await(),
+                    gNews    = gNewsDeferred.await(),
+                    currents = currentsDeferred.await()
+                )
+
+                deliver("search:${query.trim().lowercase()}:$page", merged, "No results found for \"$query\"")
+            } catch (e: Exception) {
+                cachedOrError(
+                    "search:${query.trim().lowercase()}:$page",
+                    e.message ?: "Unknown error occurred"
+                )
+            }
+        }
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────────────
+
+    private suspend fun fetchGuardianHeadlines(page: Int): List<Article> =
+        safeCall { guardianService.getTopHeadlines(page = page) }?.articles ?: emptyList()
+
+    private suspend fun fetchGNewsHeadlines(page: Int): List<Article> =
+        safeCall { gNewsService.getTopHeadlines(page = page) }
+            ?.articles?.map { it.toArticle() } ?: emptyList()
+
+    private suspend fun fetchCurrentsHeadlines(page: Int): List<Article> =
+        safeCall { currentsService.getLatestNews(page = page) }
+            ?.news?.map { it.toArticle() } ?: emptyList()
+
+    private suspend fun <T> safeCall(call: suspend () -> retrofit2.Response<T>): T? {
+        return try {
+            val response = call()
+            if (response.isSuccessful) response.body() else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private suspend fun deliver(
+        feedKey: String,
+        articles: List<Article>,
+        emptyMessage: String
+    ): Resource<List<Article>> {
+        return if (articles.isNotEmpty()) {
+            cache(feedKey, articles)
+            Resource.Success(articles)
+        } else {
+            cachedOrError(feedKey, emptyMessage)
+        }
+    }
+
+    private suspend fun cache(feedKey: String, articles: List<Article>) {
+        if (articles.isEmpty()) return
+        val now = System.currentTimeMillis()
+        cacheDao.replaceFeed(
+            feedKey,
+            articles.distinctBy { it.url }.mapIndexed { index, article ->
+                article.toCacheEntity(feedKey, index, now)
+            }
+        )
+        // Keep a rolling seven-day cache without growing indefinitely.
+        cacheDao.deleteOlderThan(now - CACHE_TTL_MS)
+    }
+
+    private suspend fun cachedOrError(feedKey: String, message: String): Resource<List<Article>> {
+        val cached = cacheDao.getFeed(feedKey).map { it.toArticle() }
+        return if (cached.isNotEmpty()) Resource.Success(cached) else Resource.Error(message)
+    }
+
+    private fun weightedMerge(
+        guardian: List<Article>,
+        gNews: List<Article>,
+        currents: List<Article>
+    ): List<Article> {
+        data class Source(val weight: Int, val articles: List<Article>)
+        val available = buildList {
+            if (guardian.isNotEmpty()) add(Source(40, guardian))
+            if (gNews.isNotEmpty())    add(Source(30, gNews))
+            if (currents.isNotEmpty()) add(Source(30, currents))
+        }
+
+        if (available.isEmpty()) return emptyList()
+
+        val totalWeight   = available.sumOf { it.weight }
+        val totalArticles = available.sumOf { it.articles.size }
+
+        val slices = available.map { source ->
+            val count = (totalArticles.toFloat() * source.weight / totalWeight)
+                .toInt()
+                .coerceAtMost(source.articles.size)
+            source.articles.take(count)
+        }
+
+        val result = mutableListOf<Article>()
+        val iters  = slices.map { it.iterator() }
+        var anyLeft = true
+        while (anyLeft) {
+            anyLeft = false
+            for (iter in iters) {
+                if (iter.hasNext()) { result.add(iter.next()); anyLeft = true }
+            }
+        }
+        return result
+    }
+
+    private companion object {
+        const val CACHE_TTL_MS = 7L * 24L * 60L * 60L * 1000L
     }
 }

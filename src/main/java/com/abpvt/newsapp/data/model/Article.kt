@@ -12,7 +12,9 @@ data class Article(
     @SerializedName("webUrl")      val url: String = "",
     @SerializedName("webPublicationDate") val publishedAt: String = "",
     @SerializedName("sectionName") val sectionName: String = "",
-    @SerializedName("fields")      val fields: Fields? = null
+    @SerializedName("fields")      val fields: Fields? = null,
+    @Transient val isOffline: Boolean = false,
+    @Transient val cachedAt: Long? = null
 ) {
     /** Optional enriched fields — only present when show-fields is requested. */
     data class Fields(
@@ -23,10 +25,19 @@ data class Article(
     )
 
     // Convenience helpers so existing UI code keeps working unchanged
-    val author: String?     get() = fields?.author
-    val description: String? get() = fields?.description
-    val urlToImage: String? get() = fields?.urlToImage
-    val content: String?    get() = fields?.content
+    val author: String?      get() = fields?.author
+    val urlToImage: String?  get() = fields?.urlToImage
+    val content: String?     get() = fields?.content
+
+    // Guardian's trailText field contains HTML (<strong>, <em>, etc.)
+    // Strip tags so card descriptions show clean plain text
+    val description: String?
+        get() {
+            val raw = fields?.description ?: return null
+            return android.text.Html.fromHtml(raw, android.text.Html.FROM_HTML_MODE_COMPACT)
+                .toString()
+                .trim()
+        }
 
     /** Mirrors the old Article.Source shape used in bookmarks / comments. */
     val source: Source get() = Source(id = null, name = sectionName.ifBlank { "The Guardian" })

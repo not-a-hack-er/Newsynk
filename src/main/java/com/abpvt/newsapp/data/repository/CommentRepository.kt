@@ -1,16 +1,23 @@
 package com.abpvt.newsapp.data.repository
 
+import android.content.Context
 import com.abpvt.newsapp.data.model.Comment
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 import com.abpvt.newsapp.utils.Resource
+import javax.inject.Inject
+import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
 
-class CommentRepository {
+@Singleton
+class CommentRepository @Inject constructor(@ApplicationContext context: Context) {
     private val db = FirebaseFirestore.getInstance()
     private val commentsCollection = db.collection("comments")
     private val auth = FirebaseAuth.getInstance()
+    private val moderationPrefs = context.getSharedPreferences("newsynk_moderation", Context.MODE_PRIVATE)
 
     /** Add a new comment to Firestore and return the document ID. */
     suspend fun addComment(comment: Comment): Resource<String> {
@@ -29,23 +36,20 @@ class CommentRepository {
         }
     }
 
-    /** Fetch comments for a given article ID. */
+    /** Fetch comments for a given article ID, ordered by timestamp ascending. */
     suspend fun getCommentsForArticle(articleId: String): Resource<List<Comment>> {
         return try {
             val snapshot = commentsCollection
                 .whereEqualTo("articleId", articleId)
-                // Removed .orderBy to avoid composite index requirement
-                // TODO: Re-enable once Firestore index is fully propagated
-                // .orderBy("timestamp", Query.Direction.ASCENDING)
+                .orderBy("timestamp", Query.Direction.ASCENDING)
                 .get()
                 .await()
-            // Sort in memory instead and properly map document IDs
             val comments = snapshot.documents
-                .mapNotNull { doc -> 
+                .mapNotNull { doc ->
                     doc.toObject(Comment::class.java)?.copy(id = doc.id)
                 }
-                .sortedBy { it.timestamp }
-            Resource.Success(comments)
+            val blocked = moderationPrefs.getStringSet("blocked_users", emptySet()).orEmpty()
+            Resource.Success(comments.filterNot { it.userId in blocked })
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Failed to fetch comments")
         }
@@ -64,7 +68,12 @@ class CommentRepository {
             val updatedComment = db.runTransaction { transaction ->
                 val snapshot = transaction.get(commentRef)
                 // Get current voters map (userId -> Boolean)
-                val voters = snapshot.get("voters") as? MutableMap<String, Boolean>
+                val voters = (snapshot.get("voters") as? Map<*, *>)
+                    ?.mapNotNull { (key, value) ->
+                        if (key is String && value is Boolean) key to value else null
+                    }
+                    ?.toMap()
+                    ?.toMutableMap()
                     ?: mutableMapOf()
                 val previousVote = voters[userId]
                 if (previousVote == isUpvote) {
@@ -91,5 +100,30 @@ class CommentRepository {
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Failed to vote on comment")
         }
+    }
+
+    suspend fun reportComment(commentId: String, reason: String): Resource<Unit> {
+        val userId = auth.currentUser?.uid ?: return Resource.Error("You must be logged in to report")
+        return try {
+            db.collection("comment_reports").add(
+                mapOf(
+                    "commentId" to commentId,
+                    "reporterId" to userId,
+                    "reason" to reason.take(200),
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "status" to "open"
+                )
+            ).await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Failed to report comment")
+        }
+    }
+
+    fun blockUser(userId: String) {
+        if (userId.isBlank() || userId == auth.currentUser?.uid) return
+        val updated = moderationPrefs.getStringSet("blocked_users", emptySet()).orEmpty().toMutableSet()
+            .apply { add(userId) }
+        moderationPrefs.edit().putStringSet("blocked_users", updated).apply()
     }
 }

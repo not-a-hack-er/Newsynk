@@ -9,9 +9,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class BookmarksViewModel(
-    private val interactionRepository: InteractionRepository = InteractionRepository()
+@HiltViewModel
+class BookmarksViewModel @Inject constructor(
+    private val interactionRepository: InteractionRepository
 ) : ViewModel() {
 
     private val _bookmarks = MutableStateFlow<List<Article>>(emptyList())

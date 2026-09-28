@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUserData(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function changesOnlyOwnVote(previousVotes, nextVotes) {
+      return nextVotes.diff(previousVotes).affectedKeys().hasOnly([request.auth.uid]);
+    }
+
+    match /users/{userId}/bookmarks/{bookmarkId} {
+      allow read, create, update, delete: if ownsUserData(userId);
+    }
+
+    match /article_votes/{articleId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['voters'])
+        && request.resource.data.voters.keys().hasOnly([request.auth.uid]);
+
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voters'])
+        && changesOnlyOwnVote(resource.data.voters, request.resource.data.voters);
+
+      allow delete: if false;
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'articleId',
+          'userId',
+          'username',
+          'content',
+          'timestamp',
+          'voters',
+          'parentCommentId'
+        ])
+        && request.resource.data.voters.size() == 0;
+
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voters'])
+        && changesOnlyOwnVote(resource.data.voters, request.resource.data.voters);
+
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /comment_reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'commentId', 'reporterId', 'reason', 'createdAt', 'status'
+        ])
+        && request.resource.data.status == 'open';
+      allow read, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

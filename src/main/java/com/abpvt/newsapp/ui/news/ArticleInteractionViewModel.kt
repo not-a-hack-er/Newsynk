@@ -10,9 +10,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class ArticleInteractionViewModel(
-    private val repository: InteractionRepository = InteractionRepository()
+@HiltViewModel
+class ArticleInteractionViewModel @Inject constructor(
+    private val repository: InteractionRepository
 ) : ViewModel() {
 
     // Map of article URL to its interaction state

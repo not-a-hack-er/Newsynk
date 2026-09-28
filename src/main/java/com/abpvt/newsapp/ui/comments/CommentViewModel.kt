@@ -9,9 +9,13 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class CommentViewModel : ViewModel() {
-    private val commentRepository = CommentRepository()
+@HiltViewModel
+class CommentViewModel @Inject constructor(
+    private val commentRepository: CommentRepository
+) : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
 
 
@@ -31,6 +35,7 @@ class CommentViewModel : ViewModel() {
 
     // Keep track of which article's comments are loaded
     private var currentArticleId: String? = null
+    private var lastPostAt: Long = 0L
 
     /** Load comments for the given article and update state flows. */
     fun loadComments(articleId: String) {
@@ -61,6 +66,15 @@ class CommentViewModel : ViewModel() {
     /** Post a new comment or reply for the article, then refresh comments. */
     fun postComment(articleId: String, text: String) {
         viewModelScope.launch {
+            val cleaned = text.trim()
+            if (cleaned.length > 1000) {
+                _error.value = "Comments are limited to 1,000 characters"
+                return@launch
+            }
+            if (System.currentTimeMillis() - lastPostAt < 10_000L) {
+                _error.value = "Please wait a few seconds before posting again"
+                return@launch
+            }
             _isLoading.value = true
             _error.value = null
             try {
@@ -76,13 +90,14 @@ class CommentViewModel : ViewModel() {
                 val comment = Comment(
                     articleId = articleId,
                     userId = currentUser.uid,
-                    content = text,
+                    content = cleaned,
                     timestamp = System.currentTimeMillis(),
                     parentCommentId = _replyingTo.value?.id  // null if not replying
                 )
                 
                 when (val result = commentRepository.addComment(comment)) {
                     is Resource.Success -> {
+                        lastPostAt = System.currentTimeMillis()
                         // Clear reply state and reload comments after successful post
                         _replyingTo.value = null
                         loadComments(articleId)
@@ -164,5 +179,20 @@ class CommentViewModel : ViewModel() {
     /** Clear the reply state. */
     fun clearReply() {
         _replyingTo.value = null
+    }
+
+    fun report(comment: Comment) {
+        viewModelScope.launch {
+            when (val result = commentRepository.reportComment(comment.id, "User reported inappropriate content")) {
+                is Resource.Success -> _error.value = "Thanks. The comment was reported for review."
+                is Resource.Error -> _error.value = result.message
+                else -> Unit
+            }
+        }
+    }
+
+    fun block(comment: Comment) {
+        commentRepository.blockUser(comment.userId)
+        _comments.value = _comments.value.filterNot { it.userId == comment.userId }
     }
 }

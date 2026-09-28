@@ -10,14 +10,21 @@ import com.abpvt.newsapp.notifications.NewsFirebaseMessagingService
 import com.abpvt.newsapp.notifications.NotificationsPrefs
 import com.abpvt.newsapp.utils.SessionManager
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.analytics.FirebaseAnalytics
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class AuthViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    application: Application
+) : AndroidViewModel(application) {
 
     private val auth           = FirebaseAuth.getInstance()
     private val sessionManager = SessionManager(application)
@@ -39,9 +46,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _profileUpdateSuccess = MutableStateFlow(false)
     val profileUpdateSuccess: StateFlow<Boolean> = _profileUpdateSuccess
 
+    private val _resetEmailSent = MutableStateFlow(false)
+    val resetEmailSent: StateFlow<Boolean> = _resetEmailSent
+
     // ── User name ────────────────────────────────────────────────────────────
     private val _currentUserName = MutableStateFlow(
-        auth.currentUser?.displayName?.takeIf { it.isNotBlank() } ?: ""
+        auth.currentUser?.let { user ->
+            user.displayName?.takeIf { it.isNotBlank() } ?: user.email?.substringBefore("@")
+        } ?: ""
     )
     val currentUserName: StateFlow<String> = _currentUserName
 
@@ -53,7 +65,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     // ── Avatar colour ────────────────────────────────────────────────────────
     private val _avatarColor = MutableStateFlow(
-        prefs.getLong(NotificationsPrefs.KEY_AVATAR_COLOR, 0xFF1565C0L)
+        prefs.getLong(NotificationsPrefs.KEY_AVATAR_COLOR, 0xFF1565C0.toInt().toLong())
     )
     val avatarColor: StateFlow<Long> = _avatarColor
 
@@ -88,6 +100,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _notifDigest        = boolFlow(NotificationsPrefs.KEY_NOTIF_DIGEST)
     val notifDigest: StateFlow<Boolean> = _notifDigest
 
+    private val _digestHour = MutableStateFlow(
+        prefs.getInt(NotificationsPrefs.KEY_DIGEST_HOUR, 8)
+    )
+    val digestHour: StateFlow<Int> = _digestHour
+
+    private val _analyticsConsent = MutableStateFlow(
+        prefs.getBoolean(NotificationsPrefs.KEY_ANALYTICS_CONSENT, false)
+    )
+    val analyticsConsent: StateFlow<Boolean> = _analyticsConsent
+
     // ── Quiet hours ───────────────────────────────────────────────────────────
     private val _quietHoursEnabled = MutableStateFlow(
         prefs.getBoolean(NotificationsPrefs.KEY_QUIET_HOURS_ENABLED, false)
@@ -104,20 +126,59 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     )
     val quietEndHour: StateFlow<Int> = _quietEndHour
 
-    init {
-        if (sessionManager.isSessionValid()) _authState.value = AuthState.Authenticated
+    // ── Firebase auth state listener ─────────────────────────────────────────
+    private val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val user = firebaseAuth.currentUser
+        if (user != null) {
+            // Firebase says someone is signed in — reflect that
+            if (_authState.value !is AuthState.Authenticated) {
+                _authState.value = AuthState.Authenticated
+            }
+            // Keep userName in sync if it's blank
+            if (_currentUserName.value.isBlank()) {
+                _currentUserName.value =
+                    user.displayName?.takeIf { it.isNotBlank() }
+                        ?: user.email?.substringBefore("@") ?: ""
+            }
+        } else {
+            // Firebase says no one is signed in — only update state if we're
+            // not already in the middle of a login attempt
+            if (_authState.value is AuthState.Authenticated) {
+                _authState.value = AuthState.Unauthenticated
+            }
+        }
     }
+
+    init {
+        // If Firebase has a cached user but our session is expired / "Remember Me"
+        // was off, sign out immediately BEFORE registering the listener so the
+        // listener sees the correct signed-out state on first fire.
+        if (auth.currentUser != null && !sessionManager.isSessionValid()) {
+            auth.signOut()
+        }
+        // Register the listener — fires synchronously with current auth state.
+        auth.addAuthStateListener(authStateListener)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        auth.removeAuthStateListener(authStateListener)
+    }
+
 
     // ── Auth ─────────────────────────────────────────────────────────────────
 
     fun login(email: String, pass: String, rememberMe: Boolean = false) {
         viewModelScope.launch {
-            _isLoading.value = true; _error.value = null
+            _isLoading.value = true
+            _error.value = null
             try {
                 val result = auth.signInWithEmailAndPassword(email, pass).await()
                 val userId = result.user?.uid ?: ""
                 if (rememberMe) sessionManager.saveSession(email, userId, rememberMe)
-                _currentUserName.value = auth.currentUser?.displayName?.takeIf { it.isNotBlank() } ?: ""
+                _currentUserName.value = auth.currentUser?.let { user ->
+                    user.displayName?.takeIf { it.isNotBlank() } ?: user.email?.substringBefore("@")
+                } ?: ""
                 _authState.value = AuthState.Authenticated
             } catch (e: Exception) {
                 _error.value = e.message ?: "Login failed"
@@ -128,7 +189,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun register(name: String, email: String, pass: String) {
         viewModelScope.launch {
-            _isLoading.value = true; _error.value = null
+            _isLoading.value = true
+            _error.value = null
             try {
                 val result = auth.createUserWithEmailAndPassword(email, pass).await()
                 val user   = result.user
@@ -154,12 +216,65 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _currentUserName.value = ""
     }
 
+    fun signInWithGoogle(idToken: String, rememberMe: Boolean = true) {
+        viewModelScope.launch {
+            _isLoading.value = true; _error.value = null
+            try {
+                val credential = GoogleAuthProvider.getCredential(idToken, null)
+                val result = auth.signInWithCredential(credential).await()
+                val user = result.user
+                if (user != null) {
+                    val userId = user.uid
+                    // Google sign-in is always treated as "remember me" —
+                    // the user explicitly chose their Google account, so persist the session.
+                    sessionManager.saveSession(user.email ?: "", userId, true)
+                    _currentUserName.value = user.displayName?.takeIf { it.isNotBlank() } ?: user.email?.substringBefore("@") ?: ""
+                    _authState.value = AuthState.Authenticated
+                } else {
+                    _error.value = "Google Sign-In failed"
+                }
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Google Sign-In failed"
+                _authState.value = AuthState.Error(e.message ?: "Google Sign-In failed")
+            } finally { _isLoading.value = false }
+        }
+    }
+
+    fun sendPasswordReset(email: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            _resetEmailSent.value = false
+            try {
+                auth.sendPasswordResetEmail(email).await()
+                _resetEmailSent.value = true
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to send reset email"
+            } finally { _isLoading.value = false }
+        }
+    }
+
+    fun resetPasswordState() {
+        _resetEmailSent.value = false
+        _error.value = null
+    }
+
+    fun clearError() {
+        _error.value = null
+    }
+
+    fun setExternalError(msg: String) {
+        _error.value = msg
+    }
+
     // ── Profile updates ───────────────────────────────────────────────────────
 
     fun updateUsername(newName: String) {
         if (newName.isBlank()) { _error.value = "Username cannot be empty"; return }
         viewModelScope.launch {
-            _isLoading.value = true; _error.value = null; _profileUpdateSuccess.value = false
+            _isLoading.value = true
+            _error.value = null
+            _profileUpdateSuccess.value = false
             try {
                 val user = auth.currentUser ?: run { _error.value = "No user logged in"; return@launch }
                 user.updateProfile(
@@ -207,12 +322,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             NotificationsPrefs.KEY_NOTIF_DIGEST        -> {
                 _notifDigest.value = enabled
                 val ctx = getApplication<Application>()
-                if (enabled) DailyDigestScheduler.schedule(ctx)
+                if (enabled) DailyDigestScheduler.schedule(ctx, _digestHour.value)
                 else         DailyDigestScheduler.cancel(ctx)
             }
         }
-        if (enabled) FirebaseMessaging.getInstance().subscribeToTopic(topic)
-        else         FirebaseMessaging.getInstance().unsubscribeFromTopic(topic)
+        if (topic.isNotBlank()) {
+            if (enabled) FirebaseMessaging.getInstance().subscribeToTopic(topic)
+            else FirebaseMessaging.getInstance().unsubscribeFromTopic(topic)
+        }
     }
 
     // ── Quiet hours ───────────────────────────────────────────────────────────
@@ -230,6 +347,19 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun setQuietEndHour(hour: Int) {
         _quietEndHour.value = hour
         prefs.edit().putInt(NotificationsPrefs.KEY_QUIET_END_HOUR, hour).apply()
+    }
+
+    fun setDigestHour(hour: Int) {
+        val safe = (hour + 24) % 24
+        _digestHour.value = safe
+        prefs.edit().putInt(NotificationsPrefs.KEY_DIGEST_HOUR, safe).apply()
+        if (_notifDigest.value) DailyDigestScheduler.schedule(getApplication(), safe)
+    }
+
+    fun setAnalyticsConsent(enabled: Boolean) {
+        _analyticsConsent.value = enabled
+        prefs.edit().putBoolean(NotificationsPrefs.KEY_ANALYTICS_CONSENT, enabled).apply()
+        FirebaseAnalytics.getInstance(getApplication()).setAnalyticsCollectionEnabled(enabled)
     }
 }
 

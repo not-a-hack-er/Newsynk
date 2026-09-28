@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Newsynk – Privacy Policy</title>
+  <meta name="description" content="Privacy Policy for the Newsynk news app by Akarsh Bajpai." />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d14; --card: #1a1a2e; --accent: #7c3aed;
+      --accent2: #a855f7; --text: #f1f0f9; --muted: #9390b0;
+      --border: rgba(124,58,237,0.2);
+    }
+    body {
+      font-family: 'Outfit', sans-serif; background: var(--bg);
+      color: var(--text); min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    body::before {
+      content: ''; position: fixed; top: -30%; left: -20%;
+      width: 60vw; height: 60vw;
+      background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+      border-radius: 50%; pointer-events: none;
+    }
+    .container {
+      max-width: 760px; margin: 0 auto;
+      position: relative; z-index: 1;
+    }
+    .header {
+      text-align: center; padding: 3rem 0 2rem;
+    }
+    .avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; margin: 0 auto 1.25rem;
+    }
+    h1 {
+      font-size: 2rem; font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 0.5rem;
+    }
+    .subtitle { color: var(--muted); font-size: 0.9rem; }
+    .updated { color: var(--muted); font-size: 0.8rem; margin-top: 0.4rem; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2rem 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+    h2 {
+      font-size: 1.15rem; font-weight: 700; color: var(--accent2);
+      margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+    p, li {
+      color: var(--muted); font-size: 0.95rem; line-height: 1.75;
+    }
+    ul { padding-left: 1.5rem; margin-top: 0.5rem; }
+    li { margin-bottom: 0.4rem; }
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .highlight {
+      background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 12px; padding: 1rem 1.25rem; margin-top: 0.75rem;
+    }
+    .highlight p { color: var(--text); }
+    .footer {
+      text-align: center; padding: 2rem 0;
+      color: var(--muted); font-size: 0.82rem; line-height: 1.8;
+    }
+    .footer a { color: var(--accent2); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="avatar">📰</div>
+      <h1>Privacy Policy</h1>
+      <p class="subtitle">Newsynk — News Aggregator App</p>
+      <p class="updated">Last updated: April 2026 &nbsp;·&nbsp; Developed by Akarsh Bajpai</p>
+    </div>
+
+    <div class="card">
+      <h2>📋 Overview</h2>
+      <p>
+        Newsynk ("the app") is a news aggregator application that curates headlines from
+        trusted third-party news providers. This Privacy Policy explains what information
+        we collect, how we use it, and your rights regarding your data.
+      </p>
+      <div class="highlight">
+        <p>
+          <strong>Plain English summary:</strong> We collect only what is necessary for
+          your account and app experience. We never sell your data. We never show ads.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📦 Information We Collect</h2>
+      <ul>
+        <li><strong>Account data:</strong> Email address and display name when you register via email/password or Google Sign-In.</li>
+        <li><strong>Profile data:</strong> Avatar color preference and profile photo (stored locally on your device).</li>
+        <li><strong>Usage data:</strong> Article bookmarks, votes (upvotes/downvotes), and comments you submit — stored in Firebase Firestore.</li>
+        <li><strong>Notification preferences:</strong> Which categories you opt into for push notifications (stored locally in SharedPreferences).</li>
+        <li><strong>Device token:</strong> Firebase Cloud Messaging token for delivering push notifications (not linked to personal identity).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🚫 What We Do NOT Collect</h2>
+      <ul>
+        <li>Precise location data</li>
+        <li>Contact lists or phone numbers</li>
+        <li>Camera access or photos (only gallery selection for avatar, on your initiative)</li>
+        <li>Payment or financial information</li>
+        <li>Behavioural tracking or advertising identifiers</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🔧 How We Use Your Information</h2>
+      <ul>
+        <li>To authenticate you and maintain your account session.</li>
+        <li>To save your bookmarks, votes, and comments so they persist across devices.</li>
+        <li>To send you push notifications for the news categories you select (only with your permission).</li>
+        <li>To personalise your username and avatar within the app.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🔗 Third-Party Services</h2>
+      <p>Newsynk integrates the following third-party services, each with their own privacy policies:</p>
+      <ul>
+        <li><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Google Firebase</a> — authentication, database (Firestore), and push notifications.</li>
+        <li><a href="https://open-platform.theguardian.com/commercial-developer-agreement/" target="_blank" rel="noopener">The Guardian Open Platform</a> — news content (The Guardian API).</li>
+        <li><a href="https://gnews.io/privacy" target="_blank" rel="noopener">GNews</a> — news content aggregation.</li>
+        <li><a href="https://currentsapi.services/en/docs/" target="_blank" rel="noopener">Currents API</a> — news content aggregation.</li>
+      </ul>
+      <p style="margin-top:0.75rem;">
+        All news articles shown in Newsynk are sourced from the above providers and link directly
+        to the original publisher. Newsynk does not create, modify, or own any news content.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>🔒 Data Security</h2>
+      <p>
+        Your account data is stored securely in Google Firebase, which is protected by
+        industry-standard encryption in transit (TLS) and at rest. We do not store passwords —
+        all authentication is handled by Firebase Authentication.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>🗑️ Data Deletion</h2>
+      <p>
+        You can delete your account and all associated data at any time by contacting us at
+        <a href="mailto:letnewsynk@gmail.com">letnewsynk@gmail.com</a>.
+        We will permanently delete your account data from our Firebase database within 30 days.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>👶 Children's Privacy</h2>
+      <p>
+        Newsynk is not directed at children under the age of 13. We do not knowingly collect
+        personal information from children. If you believe a child has provided us with personal
+        information, please contact us and we will delete it.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>📨 Changes to This Policy</h2>
+      <p>
+        We may update this Privacy Policy from time to time. We will notify you of any significant
+        changes by updating the "Last updated" date at the top of this page. Continued use of the
+        app after changes constitutes your acceptance of the updated policy.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>✉️ Contact Us</h2>
+      <p>
+        For any questions, concerns, or data deletion requests regarding this Privacy Policy,
+        please contact us at:
+      </p>
+      <div class="highlight" style="margin-top:0.75rem;">
+        <p>
+          <strong>Email:</strong> <a href="mailto:letnewsynk@gmail.com">letnewsynk@gmail.com</a><br/>
+          <strong>Developer:</strong> Akarsh Bajpai<br/>
+          <strong>App:</strong> Newsynk — News Aggregator (com.abpvt.newsapp)
+        </p>
+      </div>
+    </div>
+
+    <div class="footer">
+      &copy; 2026 Akarsh Bajpai · Newsynk<br/>
+      <a href="mailto:letnewsynk@gmail.com">letnewsynk@gmail.com</a>
+    </div>
+  </div>
+</body>
+</html>
