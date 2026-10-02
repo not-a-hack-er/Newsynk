@@ -4,7 +4,8 @@ sdk.dir=C\:\\Users\\your-user\\AppData\\Local\\Android\\Sdk
 NEWS_API_KEY=your_guardian_api_key
 GNEWS_API_KEY=your_gnews_api_key
 CURRENTS_API_KEY=your_currents_api_key
-GOOGLE_WEB_CLIENT_ID=your_google_web_client_id
+# Optional: normally generated from google-services.json.
+# GOOGLE_WEB_CLIENT_ID=your_web_client_id.apps.googleusercontent.com
 NEWSYNK_BACKEND_URL=https://your-region-your-project.cloudfunctions.net/api/
 
 # Optional release signing. Prefer an absolute path outside the repository.

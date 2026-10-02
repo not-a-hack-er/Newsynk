@@ -3,6 +3,7 @@ package com.abpvt.newsapp.auth
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.abpvt.newsapp.notifications.DailyDigestScheduler
@@ -131,7 +132,8 @@ class AuthViewModel @Inject constructor(
         val user = firebaseAuth.currentUser
         if (user != null) {
             // Firebase says someone is signed in — reflect that
-            if (_authState.value !is AuthState.Authenticated) {
+            // During login/registration, wait until we have saved the session.
+            if (!_isLoading.value && _authState.value !is AuthState.Authenticated) {
                 _authState.value = AuthState.Authenticated
             }
             // Keep userName in sync if it's blank
@@ -169,42 +171,54 @@ class AuthViewModel @Inject constructor(
     // ── Auth ─────────────────────────────────────────────────────────────────
 
     fun login(email: String, pass: String, rememberMe: Boolean = false) {
+        if (!Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() || pass.isBlank()) {
+            _error.value = "Enter a valid email and password."
+            return
+        }
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
-                val result = auth.signInWithEmailAndPassword(email, pass).await()
+                val cleanEmail = email.trim()
+                val result = auth.signInWithEmailAndPassword(cleanEmail, pass).await()
                 val userId = result.user?.uid ?: ""
-                if (rememberMe) sessionManager.saveSession(email, userId, rememberMe)
+                sessionManager.saveSession(cleanEmail, userId, rememberMe)
                 _currentUserName.value = auth.currentUser?.let { user ->
                     user.displayName?.takeIf { it.isNotBlank() } ?: user.email?.substringBefore("@")
                 } ?: ""
                 _authState.value = AuthState.Authenticated
             } catch (e: Exception) {
-                _error.value = e.message ?: "Login failed"
-                _authState.value = AuthState.Error(e.message ?: "Login failed")
+                _error.value = authErrorMessage(e)
+                _authState.value = AuthState.Error(_error.value ?: "Login failed")
             } finally { _isLoading.value = false }
         }
     }
 
     fun register(name: String, email: String, pass: String) {
+        if (name.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() || pass.length < 6) {
+            _error.value = "Enter your name, email, and a password of at least 6 characters."
+            return
+        }
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
-                val result = auth.createUserWithEmailAndPassword(email, pass).await()
+                val cleanEmail = email.trim()
+                val result = auth.createUserWithEmailAndPassword(cleanEmail, pass).await()
                 val user   = result.user
-                if (user != null && name.isNotBlank()) {
-                    user.updateProfile(
-                        UserProfileChangeRequest.Builder().setDisplayName(name).build()
-                    ).await()
-                    _currentUserName.value = name
+                sessionManager.saveSession(cleanEmail, user?.uid ?: "", true)
+                _currentUserName.value = name.trim()
+                // A profile-name update must not turn a successful account creation
+                // into a registration failure when the network briefly drops.
+                runCatching {
+                    user?.updateProfile(
+                        UserProfileChangeRequest.Builder().setDisplayName(name.trim()).build()
+                    )?.await()
                 }
-                sessionManager.saveSession(email, user?.uid ?: "", true)
                 _authState.value = AuthState.Authenticated
             } catch (e: Exception) {
-                _error.value = e.message ?: "Registration failed"
-                _authState.value = AuthState.Error(e.message ?: "Registration failed")
+                _error.value = authErrorMessage(e)
+                _authState.value = AuthState.Error(_error.value ?: "Registration failed")
             } finally { _isLoading.value = false }
         }
     }
@@ -225,31 +239,33 @@ class AuthViewModel @Inject constructor(
                 val user = result.user
                 if (user != null) {
                     val userId = user.uid
-                    // Google sign-in is always treated as "remember me" —
-                    // the user explicitly chose their Google account, so persist the session.
-                    sessionManager.saveSession(user.email ?: "", userId, true)
+                    sessionManager.saveSession(user.email ?: "", userId, rememberMe)
                     _currentUserName.value = user.displayName?.takeIf { it.isNotBlank() } ?: user.email?.substringBefore("@") ?: ""
                     _authState.value = AuthState.Authenticated
                 } else {
                     _error.value = "Google Sign-In failed"
                 }
             } catch (e: Exception) {
-                _error.value = e.message ?: "Google Sign-In failed"
-                _authState.value = AuthState.Error(e.message ?: "Google Sign-In failed")
+                _error.value = authErrorMessage(e)
+                _authState.value = AuthState.Error(_error.value ?: "Google Sign-In failed")
             } finally { _isLoading.value = false }
         }
     }
 
     fun sendPasswordReset(email: String) {
+        if (!Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) {
+            _error.value = "Enter a valid email address."
+            return
+        }
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             _resetEmailSent.value = false
             try {
-                auth.sendPasswordResetEmail(email).await()
+                auth.sendPasswordResetEmail(email.trim()).await()
                 _resetEmailSent.value = true
             } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to send reset email"
+                _error.value = authErrorMessage(e)
             } finally { _isLoading.value = false }
         }
     }
@@ -360,6 +376,19 @@ class AuthViewModel @Inject constructor(
         _analyticsConsent.value = enabled
         prefs.edit().putBoolean(NotificationsPrefs.KEY_ANALYTICS_CONSENT, enabled).apply()
         FirebaseAnalytics.getInstance(getApplication()).setAnalyticsCollectionEnabled(enabled)
+    }
+
+    private fun authErrorMessage(error: Exception): String = when (
+        (error as? com.google.firebase.auth.FirebaseAuthException)?.errorCode
+    ) {
+        "ERROR_INVALID_EMAIL" -> "Enter a valid email address."
+        "ERROR_WRONG_PASSWORD", "ERROR_INVALID_CREDENTIAL", "ERROR_USER_NOT_FOUND" ->
+            "The email or password is incorrect."
+        "ERROR_EMAIL_ALREADY_IN_USE" -> "An account already exists for this email. Sign in instead."
+        "ERROR_WEAK_PASSWORD" -> "Choose a stronger password (at least 6 characters)."
+        "ERROR_NETWORK_REQUEST_FAILED" -> "Check your internet connection and try again."
+        "ERROR_OPERATION_NOT_ALLOWED" -> "This sign-in method is disabled in Firebase."
+        else -> error.message ?: "Authentication failed. Please try again."
     }
 }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.2 - 2026-10-03
+
+- Fixed Google sign-in by using the web OAuth client generated from the Firebase configuration when no local override is provided.
+- Shared one authentication state across sign-in, registration, password reset, and the rest of the app.
+- Improved form validation, error messages, and authentication screen clarity.
+
 ## 2.0.1 - 2026-10-03
 
 - Fixed an app-start crash caused by the missing Firebase Crashlytics Gradle plugin.

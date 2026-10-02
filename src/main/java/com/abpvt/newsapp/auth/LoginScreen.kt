@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -36,32 +37,25 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.NoCredentialException
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.abpvt.newsapp.BuildConfig
 import com.abpvt.newsapp.navigation.Screen
 import com.abpvt.newsapp.ui.theme.Amber
 import com.abpvt.newsapp.ui.theme.DeepBlue
 import com.abpvt.newsapp.ui.theme.GradientEnd
 import com.abpvt.newsapp.ui.theme.GradientStart
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     navController: NavHostController,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var rememberMe by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(true) }
     var passwordVisible by remember { mutableStateOf(false) }
     var googleLoading by remember { mutableStateOf(false) }
     val isLoading by viewModel.isLoading.collectAsState()
@@ -71,6 +65,9 @@ fun LoginScreen(
     var visible by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val googleConfigured = remember(context) {
+        GoogleSignInSupport.webClientId(context).isNotBlank()
+    }
 
     LaunchedEffect(Unit) {
         delay(100)
@@ -134,7 +131,12 @@ fun LoginScreen(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "📰", fontSize = 36.sp)
+                        Icon(
+                            Icons.Default.AutoStories,
+                            contentDescription = "Newsynk",
+                            tint = Color.White,
+                            modifier = Modifier.size(38.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
@@ -184,7 +186,10 @@ fun LoginScreen(
                         // ── Email ─────────────────────────────────────────────
                         OutlinedTextField(
                             value = email,
-                            onValueChange = { email = it },
+                            onValueChange = {
+                                email = it
+                                viewModel.clearError()
+                            },
                             label = { Text("Email address") },
                             placeholder = { Text("e.g. john@example.com", color = Color(0xFFBBBBBB)) },
                             leadingIcon = {
@@ -212,7 +217,10 @@ fun LoginScreen(
                         // ── Password ──────────────────────────────────────────
                         OutlinedTextField(
                             value = password,
-                            onValueChange = { password = it },
+                            onValueChange = {
+                                password = it
+                                viewModel.clearError()
+                            },
                             label = { Text("Password") },
                             placeholder = { Text("Enter your password", color = Color(0xFFBBBBBB)) },
                             leadingIcon = {
@@ -231,6 +239,7 @@ fun LoginScreen(
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = DeepBlue,
                                 unfocusedBorderColor = Color(0xFFDDE3F5),
@@ -266,7 +275,7 @@ fun LoginScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Remember me",
+                                    text = "Keep me signed in",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFF444444)
                                 )
@@ -343,36 +352,14 @@ fun LoginScreen(
                                 viewModel.clearError()
                                 coroutineScope.launch {
                                     try {
-                                        val credentialManager = CredentialManager.create(context)
-                                        val googleIdOption = GetGoogleIdOption.Builder()
-                                            .setFilterByAuthorizedAccounts(false)
-                                            .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                                            .setAutoSelectEnabled(false)
-                                            .build()
-                                        val request = GetCredentialRequest.Builder()
-                                            .addCredentialOption(googleIdOption)
-                                            .build()
-                                        val result = credentialManager.getCredential(
-                                            request = request,
-                                            context = context
+                                        viewModel.signInWithGoogle(
+                                            GoogleSignInSupport.idToken(context), rememberMe
                                         )
-                                        val credential = result.credential
-                                        if (credential is CustomCredential &&
-                                            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                                        ) {
-                                            val googleIdTokenCredential =
-                                                GoogleIdTokenCredential.createFrom(credential.data)
-                                            val idToken = googleIdTokenCredential.idToken
-                                            viewModel.signInWithGoogle(idToken, rememberMe)
-                                        } else {
-                                            googleLoading = false
-                                            viewModel.setExternalError("Unexpected credential type")
-                                        }
                                     } catch (e: GetCredentialCancellationException) {
                                         googleLoading = false
                                     } catch (e: NoCredentialException) {
                                         googleLoading = false
-                                        Toast.makeText(context, "No Google accounts found on device.", Toast.LENGTH_LONG).show()
+                                        viewModel.setExternalError("No Google account is available on this device.")
                                     } catch (e: Exception) {
                                         googleLoading = false
                                         val msg = e.message ?: "Google Sign-In failed"
@@ -385,7 +372,7 @@ fun LoginScreen(
                                 .fillMaxWidth()
                                 .height(52.dp),
                             shape = RoundedCornerShape(16.dp),
-                            enabled = !googleLoading && !isLoading,
+                            enabled = googleConfigured && !googleLoading && !isLoading,
                             colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                         ) {
                             if (googleLoading) {
@@ -409,6 +396,14 @@ fun LoginScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
+                        }
+                        if (!googleConfigured) {
+                            Text(
+                                "Google sign-in is unavailable in this build. Add Firebase configuration to enable it.",
+                                color = Color(0xFF5F6677),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
                         }
                     }
                 }

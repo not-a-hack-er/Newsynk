@@ -67,7 +67,6 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
    NEWS_API_KEY=your_guardian_key
    GNEWS_API_KEY=your_gnews_key
    CURRENTS_API_KEY=your_currents_key
-   GOOGLE_WEB_CLIENT_ID=your_google_web_client_id
    ```
 
    Guardian falls back to its public `test` key when `NEWS_API_KEY` is blank. GNews and Currents require their own keys.
@@ -78,7 +77,7 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
    NEWSYNK_BACKEND_URL=https://your-region-your-project.cloudfunctions.net/api/
    ```
 
-3. Download `google-services.json` from Firebase Console and place it in the repository root. The file is deliberately ignored by Git.
+3. Download `google-services.json` from Firebase Console and place it in the repository root. The file is deliberately ignored by Git. Google sign-in reads the web OAuth client generated from this file. `GOOGLE_WEB_CLIENT_ID` is an optional override; it must be a real web client ID ending in `.apps.googleusercontent.com`.
 
 4. Enable Email/Password and Google providers in Firebase Authentication. Create Firestore, review [`firestore.rules`](firestore.rules), and deploy the included rules and indexes:
 
@@ -106,7 +105,7 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
 
    On Windows, use `gradlew.bat`.
 
-The project can compile without Firebase configuration for CI and source validation, but Firebase-dependent features require a valid `google-services.json` at runtime.
+The project can compile without Firebase configuration for CI and source validation. Such builds show a setup message instead of a working sign-in screen; authentication requires a valid `google-services.json` at runtime.
 
 ## Verification
 
@@ -148,7 +147,7 @@ Pushing a tag such as `v2.0.0` runs the release workflow. Configure these GitHub
 
 - `GOOGLE_SERVICES_JSON_BASE64`
 - `NEWSYNK_BACKEND_URL`
-- `GOOGLE_WEB_CLIENT_ID`
+- `GOOGLE_WEB_CLIENT_ID` (optional override; normally taken from `google-services.json`)
 - `RELEASE_KEYSTORE_BASE64`
 - `RELEASE_STORE_PASSWORD`
 - `RELEASE_KEY_ALIAS`

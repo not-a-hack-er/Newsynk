@@ -30,27 +30,20 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.NoCredentialException
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.abpvt.newsapp.BuildConfig
 import com.abpvt.newsapp.navigation.Screen
 import com.abpvt.newsapp.ui.theme.Amber
 import com.abpvt.newsapp.ui.theme.DeepBlue
 import com.abpvt.newsapp.ui.theme.GradientEnd
 import com.abpvt.newsapp.ui.theme.GradientStart
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(
     navController: NavHostController,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -62,6 +55,9 @@ fun RegisterScreen(
     val error by viewModel.error.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val googleConfigured = remember(context) {
+        GoogleSignInSupport.webClientId(context).isNotBlank()
+    }
 
     LaunchedEffect(authState) {
         when (authState) {
@@ -120,7 +116,10 @@ fun RegisterScreen(
                     // ── Full Name ─────────────────────────────────────────────
                     OutlinedTextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = {
+                            name = it
+                            viewModel.clearError()
+                        },
                         label = { Text("Full Name") },
                         placeholder = { Text("e.g. John Smith", color = Color(0xFFBBBBBB)) },
                         leadingIcon = {
@@ -147,7 +146,10 @@ fun RegisterScreen(
                     // ── Email ─────────────────────────────────────────────────
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = {
+                            email = it
+                            viewModel.clearError()
+                        },
                         label = { Text("Email address") },
                         placeholder = { Text("e.g. john@example.com", color = Color(0xFFBBBBBB)) },
                         leadingIcon = {
@@ -175,7 +177,10 @@ fun RegisterScreen(
                     // ── Password ──────────────────────────────────────────────
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = {
+                            password = it
+                            viewModel.clearError()
+                        },
                         label = { Text("Password") },
                         placeholder = { Text("At least 6 characters", color = Color(0xFFBBBBBB)) },
                         leadingIcon = {
@@ -232,7 +237,7 @@ fun RegisterScreen(
                                 .fillMaxWidth()
                                 .height(52.dp),
                             shape = RoundedCornerShape(16.dp),
-                            enabled = name.isNotBlank() && email.isNotBlank() && password.isNotBlank(),
+                            enabled = name.isNotBlank() && email.isNotBlank() && password.length >= 6,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = DeepBlue,
                                 contentColor = Color.White
@@ -265,35 +270,14 @@ fun RegisterScreen(
                             viewModel.clearError()
                             coroutineScope.launch {
                                 try {
-                                    val credentialManager = CredentialManager.create(context)
-                                    val googleIdOption = GetGoogleIdOption.Builder()
-                                        .setFilterByAuthorizedAccounts(false)
-                                        .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                                        .setAutoSelectEnabled(false)
-                                        .build()
-                                    val request = GetCredentialRequest.Builder()
-                                        .addCredentialOption(googleIdOption)
-                                        .build()
-                                    val result = credentialManager.getCredential(
-                                        request = request,
-                                        context = context
+                                    viewModel.signInWithGoogle(
+                                        GoogleSignInSupport.idToken(context), true
                                     )
-                                    val credential = result.credential
-                                    if (credential is CustomCredential &&
-                                        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                                    ) {
-                                        val googleIdTokenCredential =
-                                            GoogleIdTokenCredential.createFrom(credential.data)
-                                        viewModel.signInWithGoogle(googleIdTokenCredential.idToken, true)
-                                    } else {
-                                        googleLoading = false
-                                        viewModel.setExternalError("Unexpected credential type")
-                                    }
                                 } catch (e: GetCredentialCancellationException) {
                                     googleLoading = false
                                 } catch (e: NoCredentialException) {
                                     googleLoading = false
-                                    Toast.makeText(context, "No Google accounts found on device.", Toast.LENGTH_LONG).show()
+                                    viewModel.setExternalError("No Google account is available on this device.")
                                 } catch (e: Exception) {
                                     googleLoading = false
                                     val msg = e.message ?: "Google Sign-In failed"
@@ -306,7 +290,7 @@ fun RegisterScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = RoundedCornerShape(16.dp),
-                        enabled = !googleLoading && !isLoading,
+                        enabled = googleConfigured && !googleLoading && !isLoading,
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                     ) {
                         if (googleLoading) {
@@ -330,6 +314,14 @@ fun RegisterScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
+                    }
+                    if (!googleConfigured) {
+                        Text(
+                            "Google sign-in is unavailable in this build. Add Firebase configuration to enable it.",
+                            color = Color(0xFF5F6677),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
             }
