@@ -8,6 +8,8 @@ pluginManagement {
         id("com.android.test") version "8.9.1"
         id("androidx.baselineprofile") version "1.4.1"
         id("com.google.gms.google-services") version "4.4.4"
+        id("com.google.firebase.crashlytics") version "3.0.8"
+        id("com.google.firebase.firebase-perf") version "2.0.2"
         id("com.google.dagger.hilt.android") version "2.57.2"
         id("com.google.devtools.ksp") version "2.1.21-2.0.2"
     }

@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services") apply false
+    // These plugins generate the Crashlytics build ID and instrument network
+    // performance. Including only their runtime SDKs makes Firebase crash the
+    // process before MainActivity can start.
+    id("com.google.firebase.crashlytics")
+    id("com.google.firebase.firebase-perf")
     // Hilt
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
@@ -44,8 +49,8 @@ android {
         applicationId = "com.abpvt.newsapp"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "2.0"
+        versionCode = 8
+        versionName = "2.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 - 2026-10-03
+
+- Fixed an app-start crash caused by the missing Firebase Crashlytics Gradle plugin.
+- Enabled Firebase Performance Monitoring bytecode instrumentation.
+- Verified clean-install startup on an Android emulator with no fatal exception.
+
 All notable changes to Newsynk will be documented here.
 
 ## 2.0.0 - Unreleased
