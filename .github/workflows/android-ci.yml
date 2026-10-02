@@ -18,11 +18,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21 for Firebase Emulator Suite
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -45,11 +45,17 @@ jobs:
           npm run build
           npm run test:rules
 
+      - name: Set up JDK 17 for Android
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Test, lint, and build Android artifacts
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest :benchmark:assembleBenchmarkRelease
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: newsynk-debug-${{ github.sha }}
           path: build/outputs/apk/debug/*.apk
@@ -58,7 +64,7 @@ jobs:
 
       - name: Upload unit-test reports
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: newsynk-unit-test-report-${{ github.sha }}
           path: build/reports/tests/testDebugUnitTest/

@@ -71,7 +71,7 @@ jobs:
         run: ./gradlew --no-daemon clean testReleaseUnitTest assembleRelease
 
       - name: Upload signed APK
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: newsynk-${{ github.ref_name }}
           path: build/outputs/apk/release/*-release.apk
