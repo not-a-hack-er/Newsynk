@@ -8,6 +8,7 @@ initializeApp();
 const guardianKey = defineSecret("GUARDIAN_API_KEY");
 const gnewsKey = defineSecret("GNEWS_API_KEY");
 const currentsKey = defineSecret("CURRENTS_API_KEY");
+const newsDataKey = defineSecret("NEWSDATA_API_KEY");
 
 type NormalizedArticle = {
   id: string;
@@ -23,9 +24,9 @@ type NormalizedArticle = {
   };
 };
 
-async function jsonOrNull(url: URL): Promise<any | null> {
+async function jsonOrNull(url: URL, headers?: HeadersInit): Promise<any | null> {
   try {
-    const response = await fetch(url, {signal: AbortSignal.timeout(8_000)});
+    const response = await fetch(url, {headers, signal: AbortSignal.timeout(8_000)});
     return response.ok ? await response.json() : null;
   } catch {
     return null;
@@ -46,7 +47,6 @@ function guardianUrl(page: number, query?: string, category?: string): URL {
 
 function gnewsUrl(page: number, query?: string, category?: string): URL {
   const url = new URL(`https://gnews.io/api/v4/${query ? "search" : "top-headlines"}`);
-  url.searchParams.set("apikey", gnewsKey.value());
   url.searchParams.set("page", String(page));
   url.searchParams.set("max", "10");
   url.searchParams.set("lang", "en");
@@ -57,11 +57,19 @@ function gnewsUrl(page: number, query?: string, category?: string): URL {
 
 function currentsUrl(page: number, query?: string, category?: string): URL {
   const url = new URL(`https://api.currentsapi.services/v1/${query || category ? "search" : "latest-news"}`);
-  url.searchParams.set("apiKey", currentsKey.value());
   url.searchParams.set("page_number", String(page));
   url.searchParams.set("language", "en");
   if (query) url.searchParams.set("keywords", query);
   if (category) url.searchParams.set("category", category);
+  return url;
+}
+
+function newsDataUrl(query?: string, category?: string): URL {
+  const url = new URL("https://newsdata.io/api/1/latest");
+  url.searchParams.set("apikey", newsDataKey.value());
+  url.searchParams.set("language", "en");
+  if (query) url.searchParams.set("q", query);
+  if (category) url.searchParams.set("category", category === "tech" ? "technology" : category);
   return url;
 }
 
@@ -87,7 +95,7 @@ function normalizeCurrents(data: any): NormalizedArticle[] {
     webTitle: item.title ?? "Untitled story",
     webUrl: item.url,
     webPublicationDate: item.published ?? "",
-    sectionName: item.author ?? "Currents",
+    sectionName: publisherFromUrl(item.url, "Currents"),
     fields: {
       thumbnail: item.image,
       trailText: item.description,
@@ -96,8 +104,31 @@ function normalizeCurrents(data: any): NormalizedArticle[] {
   }));
 }
 
+function publisherFromUrl(raw: string | undefined, fallback: string): string {
+  try {
+    return new URL(raw ?? "").hostname.replace(/^www\./, "") || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeNewsData(data: any): NormalizedArticle[] {
+  return (data?.results ?? []).map((item: any) => ({
+    id: item.article_id ?? item.link,
+    webTitle: item.title ?? "Untitled story",
+    webUrl: item.link,
+    webPublicationDate: item.pubDate ?? "",
+    sectionName: item.source_name ?? "NewsData.io",
+    fields: {
+      thumbnail: item.image_url,
+      trailText: item.description,
+      byline: item.creator?.[0],
+    },
+  }));
+}
+
 export const api = onRequest(
-  {cors: true, secrets: [guardianKey, gnewsKey, currentsKey], timeoutSeconds: 30},
+  {cors: true, secrets: [guardianKey, gnewsKey, currentsKey, newsDataKey], timeoutSeconds: 30},
   async (request, response) => {
     if (request.path !== "/feed" || request.method !== "GET") {
       response.status(404).json({error: "Not found"});
@@ -120,15 +151,16 @@ export const api = onRequest(
     const query = String(request.query.query ?? "").trim().slice(0, 120) || undefined;
     const category = String(request.query.category ?? "").trim().toLowerCase().slice(0, 40) || undefined;
 
-    const [guardian, gnews, currents] = await Promise.all([
+    const [guardian, gnews, currents, newsData] = await Promise.all([
       jsonOrNull(guardianUrl(page, query, category)),
-      jsonOrNull(gnewsUrl(page, query, category)),
-      jsonOrNull(currentsUrl(page, query, category)),
+      jsonOrNull(gnewsUrl(page, query, category), {"X-Api-Key": gnewsKey.value()}),
+      jsonOrNull(currentsUrl(page, query, category), {Authorization: `Bearer ${currentsKey.value()}`}),
+      page === 1 ? jsonOrNull(newsDataUrl(query, category)) : Promise.resolve(null),
     ]);
 
     const guardianArticles: NormalizedArticle[] = guardian?.response?.results ?? [];
-    const merged = [guardianArticles, normalizeGnews(gnews), normalizeCurrents(currents)]
-      .flatMap((items, sourceIndex) => items.map((item, index) => ({item, rank: index * 3 + sourceIndex})))
+    const merged = [guardianArticles, normalizeGnews(gnews), normalizeCurrents(currents), normalizeNewsData(newsData)]
+      .flatMap((items, sourceIndex) => items.map((item, index) => ({item, rank: index * 4 + sourceIndex})))
       .sort((a, b) => a.rank - b.rank)
       .map(({item}) => item)
       .filter((item, index, all) => item.webUrl && all.findIndex((other) => other.webUrl === item.webUrl) === index);

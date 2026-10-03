@@ -40,7 +40,22 @@ data class Article(
         }
 
     /** Mirrors the old Article.Source shape used in bookmarks / comments. */
-    val source: Source get() = Source(id = null, name = sectionName.ifBlank { "The Guardian" })
+    val source: Source get() {
+        val host = runCatching { java.net.URI(url).host?.removePrefix("www.") }.getOrNull()
+        val publisher = when {
+            host == "theguardian.com" || host?.endsWith(".theguardian.com") == true -> "The Guardian"
+            sectionName.lowercase() in CATEGORY_LABELS && !host.isNullOrBlank() -> host
+            else -> sectionName.ifBlank { host ?: "Unknown publisher" }
+        }
+        return Source(id = null, name = publisher)
+    }
 
     data class Source(val id: String?, val name: String)
+
+    private companion object {
+        val CATEGORY_LABELS = setOf(
+            "technology", "tech", "business", "sport", "sports", "health",
+            "society", "world", "culture", "entertainment", "science", "politics", "news"
+        )
+    }
 }

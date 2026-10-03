@@ -389,11 +389,19 @@ private fun getSourceBadgeColor(sourceName: String): Color {
 
 private fun formatPublishedTime(publishedAt: String): String {
     return try {
-        val fmt  = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
+        val patterns = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ssXXX", "yyyy-MM-dd HH:mm:ss Z", "yyyy-MM-dd HH:mm:ss"
+        )
+        val date = patterns.firstNotNullOfOrNull { pattern ->
+            val fmt = SimpleDateFormat(pattern, Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+                isLenient = false
+            }
+            val position = java.text.ParsePosition(0)
+            fmt.parse(publishedAt, position)?.takeIf { position.index == publishedAt.length }
         }
-        val date = fmt.parse(publishedAt)
-        val diff = Date().time - (date?.time ?: 0)
+        val diff = Date().time - (date ?: return publishedAt).time
         val mins = diff / 60000
         val hrs  = mins / 60
         val days = hrs  / 24

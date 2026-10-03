@@ -5,6 +5,7 @@ sdk.dir=C\:\\Users\\your-user\\AppData\\Local\\Android\\Sdk
 NEWS_API_KEY=
 GNEWS_API_KEY=
 CURRENTS_API_KEY=
+NEWSDATA_API_KEY=
 # Optional: normally generated from google-services.json.
 # GOOGLE_WEB_CLIENT_ID=your_web_client_id.apps.googleusercontent.com
 # Optional production backend. Leave blank until deployed.

@@ -1,12 +1,12 @@
 # Newsynk
 
-Newsynk is a native Android news aggregator built with Kotlin and Jetpack Compose. It combines stories from The Guardian, GNews, and Currents, then presents them in a searchable, category-based feed with bookmarking, voting, comments, sharing, and configurable notifications.
+Newsynk is a native Android news aggregator built with Kotlin and Jetpack Compose. It combines stories from The Guardian, GNews, Currents, and NewsData.io (when configured), then presents them in a searchable, category-based feed with bookmarking, voting, comments, sharing, and configurable notifications. Without keys, it falls back to BBC News and Guardian RSS headlines.
 
 ![Newsynk promotional artwork](docs/screenshots/newsynk_viral_launch_final.png)
 
 ## Features
 
-- Aggregated headlines from The Guardian, GNews, and Currents
+- Aggregated headlines from The Guardian, GNews, Currents, and NewsData.io; BBC News and Guardian RSS fallback
 - Category filters, search, pagination, and pull-to-refresh
 - Personalized For You feed, topic onboarding, and recent searches
 - Multi-source story clustering with a Compare Coverage view
@@ -67,11 +67,14 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
    NEWS_API_KEY=your_guardian_key
    GNEWS_API_KEY=your_gnews_key
    CURRENTS_API_KEY=your_currents_key
+   NEWSDATA_API_KEY=your_newsdata_key
    ```
 
    Provider keys are optional for local reading. Without them, Newsynk uses public BBC News and Guardian RSS feeds for current headlines and categories. Search in this mode checks only recent stories from those feeds; full search and richer coverage need provider keys or the backend. The Guardian `test` key is not used because it no longer returns content reliably.
 
-   Production release builds deliberately exclude all three provider keys. Configure the secure backend URL instead:
+   Create keys directly with the providers: [The Guardian Open Platform](https://open-platform.theguardian.com/access/), [GNews](https://gnews.io/faq), [Currents](https://currentsapi.services/en/news-api-key), and [NewsData.io](https://newsdata.io/blog/how-to-get-news-api-key/). Keep your keys in the ignored `local.properties` for local testing, or configure the Firebase secrets below for a production backend. No provider key is included in this repository.
+
+   Production release builds deliberately exclude all four provider keys. Configure the secure backend URL instead:
 
    ```properties
    NEWSYNK_BACKEND_URL=https://your-region-your-project.cloudfunctions.net/api/
@@ -91,11 +94,14 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
    firebase functions:secrets:set GUARDIAN_API_KEY
    firebase functions:secrets:set GNEWS_API_KEY
    firebase functions:secrets:set CURRENTS_API_KEY
+   firebase functions:secrets:set NEWSDATA_API_KEY
    cd backend && npm install && npm run build && cd ..
    firebase deploy --only functions
    ```
 
    Register both debug and release builds with Firebase App Check. Debug builds use the debug provider; release builds use Play Integrity. The deployed proxy rejects requests without a valid App Check token.
+
+   The four providers have separate quotas and licenses. The Guardian developer key is for **non-commercial** use. GNews says its free plan is for **non-commercial development/testing only** and requires a paid plan for a published app; its free results are delayed. NewsData.io's free results are also delayed. Review current provider terms and publisher rights before distributing or monetizing a production build. NewsData.io uses cursor pagination; Newsynk currently includes only its first page and uses the other sources for subsequent pages. Never put provider keys in a public issue or commit.
 
 6. Build and test from the repository root:
 

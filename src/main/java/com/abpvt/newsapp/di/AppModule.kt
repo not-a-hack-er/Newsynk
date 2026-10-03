@@ -5,6 +5,7 @@ import com.abpvt.newsapp.data.remote.GNewsApiService
 import com.abpvt.newsapp.data.remote.NewsApiService
 import com.abpvt.newsapp.data.remote.BackendNewsApiService
 import com.abpvt.newsapp.data.remote.AppCheckInterceptor
+import com.abpvt.newsapp.data.remote.NewsDataApiService
 import com.abpvt.newsapp.utils.Constants
 import dagger.Module
 import dagger.Provides
@@ -18,8 +19,8 @@ import javax.inject.Singleton
 /**
  * Hilt module that provides all network-layer singletons.
  *
- * Why @Named? Each API has a different base URL, so we need three separate
- * Retrofit instances. @Named lets Hilt distinguish between them.
+ * Why @Named? Each API has a different base URL, so separate Retrofit
+ * instances let Hilt distinguish between them.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -56,6 +57,15 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Named("newsdata")
+    fun provideNewsDataRetrofit(): Retrofit =
+        Retrofit.Builder()
+            .baseUrl(Constants.NEWSDATA_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+    @Provides
+    @Singleton
     @Named("backend")
     fun provideBackendRetrofit(appCheckInterceptor: AppCheckInterceptor): Retrofit =
         Retrofit.Builder()
@@ -80,6 +90,11 @@ object NetworkModule {
     @Singleton
     fun provideCurrentsService(@Named("currents") retrofit: Retrofit): CurrentsApiService =
         retrofit.create(CurrentsApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideNewsDataService(@Named("newsdata") retrofit: Retrofit): NewsDataApiService =
+        retrofit.create(NewsDataApiService::class.java)
 
     @Provides
     @Singleton

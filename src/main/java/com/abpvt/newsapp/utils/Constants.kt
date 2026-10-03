@@ -17,6 +17,10 @@ object Constants {
     const val CURRENTS_BASE_URL = "https://api.currentsapi.services/v1/"
     val CURRENTS_API_KEY: String get() = BuildConfig.CURRENTS_API_KEY
 
+    // NewsData.io
+    const val NEWSDATA_BASE_URL = "https://newsdata.io/api/1/"
+    val NEWSDATA_API_KEY: String get() = BuildConfig.NEWSDATA_API_KEY
+
     // Legacy alias so any existing code referencing Constants.BASE_URL or NEWS_API_KEY still compiles
     const val BASE_URL = GUARDIAN_BASE_URL
     val NEWS_API_KEY: String get() = GUARDIAN_API_KEY

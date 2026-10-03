@@ -3,11 +3,13 @@ package com.abpvt.newsapp.ui.news
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -23,9 +25,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -33,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.abpvt.newsapp.auth.AuthViewModel
+import com.abpvt.newsapp.R
 import com.abpvt.newsapp.navigation.Screen
 import com.abpvt.newsapp.ui.theme.*
 
@@ -132,19 +138,29 @@ fun NewsScreen(
                                 shape = RoundedCornerShape(24.dp)
                             )
                         } else {
-                            Column {
-                                Text(
-                                    text = "Newsynk",
-                                    color = Color.White,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                if (greeting.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF060515)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(38.dp).graphicsLayer(scaleX = 1.7f, scaleY = 1.7f)
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column {
                                     Text(
-                                        text = greeting,
+                                        text = "Newsynk",
+                                        color = Color.White,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = greeting.ifEmpty { "Your world, in focus" },
                                         color = Color.White.copy(alpha = 0.85f),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Normal
+                                        fontSize = 12.sp
                                     )
                                 }
                             }

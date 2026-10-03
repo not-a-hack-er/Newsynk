@@ -49,8 +49,8 @@ android {
         applicationId = "com.abpvt.newsapp"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10
-        versionName = "2.1.0"
+        versionCode = 11
+        versionName = "2.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -69,6 +69,11 @@ android {
             "String",
             "CURRENTS_API_KEY",
             "\"${localProperties.getProperty("CURRENTS_API_KEY", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "NEWSDATA_API_KEY",
+            "\"${localProperties.getProperty("NEWSDATA_API_KEY", "")}\""
         )
         buildConfigField(
             "String",
@@ -94,6 +99,7 @@ android {
             buildConfigField("String", "NEWS_API_KEY", "\"\"")
             buildConfigField("String", "GNEWS_API_KEY", "\"\"")
             buildConfigField("String", "CURRENTS_API_KEY", "\"\"")
+            buildConfigField("String", "NEWSDATA_API_KEY", "\"\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

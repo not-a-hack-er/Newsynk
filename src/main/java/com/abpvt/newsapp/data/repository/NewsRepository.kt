@@ -8,6 +8,7 @@ import com.abpvt.newsapp.data.remote.CurrentsApiService
 import com.abpvt.newsapp.data.remote.GNewsApiService
 import com.abpvt.newsapp.data.remote.NewsApiService
 import com.abpvt.newsapp.data.remote.BackendNewsApiService
+import com.abpvt.newsapp.data.remote.NewsDataApiService
 import com.abpvt.newsapp.utils.Constants
 import com.abpvt.newsapp.utils.Resource
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,7 @@ class NewsRepository @Inject constructor(
     private val guardianService: NewsApiService,
     private val gNewsService: GNewsApiService,
     private val currentsService: CurrentsApiService,
+    private val newsDataService: NewsDataApiService,
     private val backendService: BackendNewsApiService,
     private val cacheDao: ArticleCacheDao,
     private val rssFeedSource: RssFeedSource
@@ -59,7 +61,7 @@ class NewsRepository @Inject constructor(
     }
 
     /**
-     * Fetch top headlines across all 3 APIs in parallel and merge in weighted round-robin.
+     * Fetch top headlines across configured providers in parallel.
      */
     suspend fun getTopHeadlines(page: Int = 1): Resource<List<Article>> {
         return withContext(Dispatchers.IO) {
@@ -71,12 +73,14 @@ class NewsRepository @Inject constructor(
                 val guardianDeferred  = async { fetchGuardianHeadlines(page) }
                 val gNewsDeferred     = async { fetchGNewsHeadlines(page) }
                 val currentsDeferred  = async { fetchCurrentsHeadlines(page) }
+                val newsDataDeferred = async { fetchNewsData(page) }
 
                 val guardianArticles  = guardianDeferred.await()
                 val gNewsArticles     = gNewsDeferred.await()
                 val currentsArticles  = currentsDeferred.await()
+                val newsDataArticles = newsDataDeferred.await()
 
-                val merged = weightedMerge(guardianArticles, gNewsArticles, currentsArticles)
+                val merged = interleave(guardianArticles, gNewsArticles, currentsArticles, newsDataArticles)
 
                 deliver("top:$page", merged.ifEmpty { rssFeedSource.headlines(page) }, "No articles available. Please check your connection.")
             } catch (e: Exception) {
@@ -86,7 +90,7 @@ class NewsRepository @Inject constructor(
     }
 
     /**
-     * Fetch category-specific articles across all 3 APIs in parallel.
+     * Fetch category-specific articles across all configured providers in parallel.
      * Category slugs: "technology", "business", "sports", "health", "world", "entertainment".
      */
     suspend fun getCategoryNews(category: String, page: Int = 1): Resource<List<Article>> {
@@ -140,7 +144,8 @@ class NewsRepository @Inject constructor(
                     )
                 }
                 if (Constants.GUARDIAN_API_KEY.isBlank() &&
-                    Constants.GNEWS_API_KEY.isBlank() && Constants.CURRENTS_API_KEY.isBlank()
+                    Constants.GNEWS_API_KEY.isBlank() && Constants.CURRENTS_API_KEY.isBlank() &&
+                    Constants.NEWSDATA_API_KEY.isBlank()
                 ) {
                     return@withContext deliver(
                         "category:$catLower:$page",
@@ -166,10 +171,11 @@ class NewsRepository @Inject constructor(
                         ?.news?.map { it.toArticle() } ?: emptyList()
                 }
 
-                val merged = weightedMerge(
-                    guardian = guardianDeferred.await(),
-                    gNews    = gNewsDeferred.await(),
-                    currents = currentsDeferred.await()
+                val newsDataDeferred = async { fetchNewsData(page, category = newsDataCategory(catLower)) }
+
+                val merged = interleave(
+                    guardianDeferred.await(), gNewsDeferred.await(),
+                    currentsDeferred.await(), newsDataDeferred.await()
                 )
 
                 if (merged.isEmpty()) {
@@ -192,7 +198,7 @@ class NewsRepository @Inject constructor(
     }
 
     /**
-     * Search across all 3 APIs simultaneously and round-robin the results.
+     * Search across all configured providers simultaneously.
      */
     suspend fun getLatestNews(query: String = "general", page: Int = 1): Resource<List<Article>> {
         return withContext(Dispatchers.IO) {
@@ -223,10 +229,11 @@ class NewsRepository @Inject constructor(
                         ?.news?.map { it.toArticle() } ?: emptyList()
                 }
 
-                val merged = weightedMerge(
-                    guardian = guardianDeferred.await(),
-                    gNews    = gNewsDeferred.await(),
-                    currents = currentsDeferred.await()
+                val newsDataDeferred = async { fetchNewsData(page, query = query) }
+
+                val merged = interleave(
+                    guardianDeferred.await(), gNewsDeferred.await(),
+                    currentsDeferred.await(), newsDataDeferred.await()
                 )
 
                 deliver("search:${query.trim().lowercase()}:$page", merged.ifEmpty { rssFeedSource.search(query, page) }, "No results found for \"$query\"")
@@ -252,6 +259,18 @@ class NewsRepository @Inject constructor(
     private suspend fun fetchCurrentsHeadlines(page: Int): List<Article> =
         if (Constants.CURRENTS_API_KEY.isBlank()) emptyList() else safeCall { currentsService.getLatestNews(page = page) }
             ?.news?.map { it.toArticle() } ?: emptyList()
+
+    private suspend fun fetchNewsData(page: Int, query: String? = null, category: String? = null): List<Article> =
+        if (Constants.NEWSDATA_API_KEY.isBlank() || page != 1) emptyList()
+        else safeCall { newsDataService.getLatest(query = query, category = category) }
+            ?.results?.mapNotNull { it.toArticle() } ?: emptyList()
+
+    private fun newsDataCategory(category: String): String = when (category) {
+        "tech" -> "technology"
+        "sports" -> "sports"
+        "entertainment" -> "entertainment"
+        else -> category
+    }
 
     private suspend fun <T> safeCall(call: suspend () -> retrofit2.Response<T>): T? {
         return try {
@@ -293,32 +312,10 @@ class NewsRepository @Inject constructor(
         return if (cached.isNotEmpty()) Resource.Success(cached) else Resource.Error(message)
     }
 
-    private fun weightedMerge(
-        guardian: List<Article>,
-        gNews: List<Article>,
-        currents: List<Article>
-    ): List<Article> {
-        data class Source(val weight: Int, val articles: List<Article>)
-        val available = buildList {
-            if (guardian.isNotEmpty()) add(Source(40, guardian))
-            if (gNews.isNotEmpty())    add(Source(30, gNews))
-            if (currents.isNotEmpty()) add(Source(30, currents))
-        }
-
-        if (available.isEmpty()) return emptyList()
-
-        val totalWeight   = available.sumOf { it.weight }
-        val totalArticles = available.sumOf { it.articles.size }
-
-        val slices = available.map { source ->
-            val count = (totalArticles.toFloat() * source.weight / totalWeight)
-                .toInt()
-                .coerceAtMost(source.articles.size)
-            source.articles.take(count)
-        }
-
+    private fun interleave(vararg sources: List<Article>): List<Article> {
+        // Fairly mix publishers without dropping results when one provider returns fewer stories.
         val result = mutableListOf<Article>()
-        val iters  = slices.map { it.iterator() }
+        val iters = sources.filter { it.isNotEmpty() }.map { it.iterator() }
         var anyLeft = true
         while (anyLeft) {
             anyLeft = false
@@ -326,7 +323,7 @@ class NewsRepository @Inject constructor(
                 if (iter.hasNext()) { result.add(iter.next()); anyLeft = true }
             }
         }
-        return result
+        return result.distinctBy { it.url.substringBefore('?').trimEnd('/').lowercase() }
     }
 
     private companion object {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.2.0 - 2026-10-03
+
+- Preserved the original launcher icon and reused its existing mark on sign-in and the Home header for consistent branding.
+- Added NewsData.io as a fourth optional news provider in debug builds and the App Check-protected backend.
+- Fixed the feed merge dropping articles when providers return uneven result counts.
+- Corrected publisher badges for Guardian sections and category-only articles, and accepted the different timestamp formats used by the providers.
+- Corrected the About screen's outdated NewsAPI.org attribution and documented provider setup and free-tier caveats.
+- Added NewsData.io mapping tests.
+
 ## 2.1.0 - 2026-10-03
 
 - Replaced the unusable Guardian `test` key path with a public BBC/Guardian RSS fallback for headlines, categories, and recent-story search.

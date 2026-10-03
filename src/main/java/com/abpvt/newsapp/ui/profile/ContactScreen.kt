@@ -147,7 +147,7 @@ fun ContactScreen(navController: NavHostController) {
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            "Newsynk is a news aggregator app that curates the latest headlines from trusted publishers across the web. All articles are sourced from verified news outlets via NewsAPI.org. We do not create or own any news content — every article links directly to its original publisher.",
+                            "Newsynk curates headlines from participating news APIs and public publisher feeds. We do not create or own the reporting — each story links to its original publisher.",
                             style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
                         )
@@ -157,7 +157,7 @@ fun ContactScreen(navController: NavHostController) {
                         Text("News Sources", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold), color = Color.Gray)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "All news content is provided by the original publishers shown on each article card. Newsynk aggregates content from NewsAPI.org and does not endorse or affiliate with any individual news source.",
+                            "Stories are provided by the original publishers shown on article cards. Newsynk aggregates metadata and links from The Guardian, GNews, Currents, NewsData.io, and public RSS feeds when configured. Newsynk does not endorse or affiliate with individual publishers.",
                             style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp), color = Color.Gray
                         )
                     }

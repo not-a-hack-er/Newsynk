@@ -3,6 +3,7 @@ package com.abpvt.newsapp.data.model
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import com.google.gson.Gson
 
 class ApiArticleMappingTest {
 
@@ -62,5 +63,32 @@ class ApiArticleMappingTest {
         assertEquals("https://example.com/fallback", article.id)
         assertEquals("Currents", article.sectionName)
         assertNull(article.urlToImage)
+    }
+
+    @Test
+    fun `NewsData response maps publisher and image`() {
+        val json = """{"status":"success","results":[{"article_id":"nd-1","title":"A story","link":"https://example.com/a","source_name":"Example Daily","image_url":"https://example.com/a.jpg","pubDate":"2026-10-03 08:00:00","creator":["A Reporter"]}]}"""
+        val article = Gson().fromJson(json, NewsDataResponse::class.java).results.single().toArticle()!!
+        assertEquals("Example Daily", article.sectionName)
+        assertEquals("https://example.com/a.jpg", article.urlToImage)
+        assertEquals("A Reporter", article.author)
+        assertEquals("https://example.com/a", article.url)
+    }
+
+    @Test
+    fun `NewsData mapping drops malformed links`() {
+        assertNull(NewsDataArticle(title = "A story", link = "javascript:alert(1)").toArticle())
+    }
+
+    @Test
+    fun `Guardian section labels show the actual publisher`() {
+        val article = Article(url = "https://www.theguardian.com/world/story", sectionName = "World")
+        assertEquals("The Guardian", article.source.name)
+    }
+
+    @Test
+    fun `Generic category labels show the publisher domain`() {
+        val article = Article(url = "https://www.example.com/story", sectionName = "technology")
+        assertEquals("example.com", article.source.name)
     }
 }
