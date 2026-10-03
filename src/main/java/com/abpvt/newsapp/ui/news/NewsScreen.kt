@@ -1,7 +1,5 @@
 package com.abpvt.newsapp.ui.news
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -9,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -26,9 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +52,9 @@ fun NewsScreen(
     val isPaginating by newsViewModel.isPaginating.collectAsState()
     val error by newsViewModel.error.collectAsState()
     val clusters by newsViewModel.clusters.collectAsState()
+    val clustersByUrl = remember(clusters) {
+        clusters.flatMap { cluster -> cluster.allArticles.map { it.url to cluster } }.toMap()
+    }
     val followedTopics by newsViewModel.followedTopics.collectAsState()
     val onboardingComplete by newsViewModel.onboardingComplete.collectAsState()
     val recentSearches by newsViewModel.recentSearches.collectAsState()
@@ -140,13 +140,13 @@ fun NewsScreen(
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF060515)),
+                                    modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Image(
-                                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                                        painter = painterResource(R.drawable.newsynk_logo),
                                         contentDescription = null,
-                                        modifier = Modifier.size(38.dp).graphicsLayer(scaleX = 1.7f, scaleY = 1.7f)
+                                        modifier = Modifier.size(42.dp).scale(1.07f)
                                     )
                                 }
                                 Spacer(Modifier.width(10.dp))
@@ -232,8 +232,9 @@ fun NewsScreen(
                 state = pullRefreshState,
                 modifier = Modifier.fillMaxSize()
             ) {
-                Crossfade(targetState = isLoading to articles, animationSpec = tween(400), label = "news_crossfade") { (loading, list) ->
-                    Column(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    val loading = isLoading
+                    val list = articles
                     if (loading && list.isEmpty()) {
                         com.abpvt.newsapp.ui.news.components.FeedSkeleton(
                             modifier = Modifier.fillMaxSize().padding(top = 8.dp)
@@ -292,9 +293,7 @@ fun NewsScreen(
                         }
 
                         items(list, key = { it.url }) { article ->
-                            val cluster = clusters.firstOrNull { story ->
-                                story.allArticles.any { clustered -> clustered.url == article.url }
-                            }
+                            val cluster = clustersByUrl[article.url]
                             NewsItem(
                                 article = article,
                                 coverageCount = cluster?.sourceCount ?: 1,
@@ -330,7 +329,6 @@ fun NewsScreen(
                             }
                         }
                     }
-                }
             }
         }
     }

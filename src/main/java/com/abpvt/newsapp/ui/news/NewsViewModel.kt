@@ -12,10 +12,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -56,6 +59,8 @@ class NewsViewModel @Inject constructor(
     private var currentPage = 1
     private var hasMorePages = true
     private var fetchJob: Job? = null
+    private var lastFetchedSearchQuery: String? = null
+    private var lastFeedIdentity: String? = null
 
     init {
         // Observe search query with debounce
@@ -63,10 +68,12 @@ class NewsViewModel @Inject constructor(
             @OptIn(kotlinx.coroutines.FlowPreview::class)
             _searchQuery
                 .debounce(500)
+                .distinctUntilChanged()
                 .collectLatest { query ->
-                    if (query.trim().isNotEmpty()) {
-                        fetchNews(query = query, category = null, isRefresh = true)
-                    } else if (_isSearchActive.value) {
+                    val normalized = query.trim()
+                    if (normalized.isNotEmpty() && normalized != lastFetchedSearchQuery) {
+                        fetchNews(query = normalized, category = null, isRefresh = true)
+                    } else if (normalized.isEmpty() && _isSearchActive.value) {
                         fetchNews(query = null, category = _selectedCategory.value, isRefresh = true)
                     }
                 }
@@ -129,17 +136,39 @@ class NewsViewModel @Inject constructor(
 
     private fun fetchNews(query: String? = null, category: String? = null, isRefresh: Boolean = true) {
         if (isRefresh) fetchJob?.cancel()
+        lastFetchedSearchQuery = query?.trim()?.takeIf { it.isNotEmpty() }
+        val feedIdentity = if (!query.isNullOrBlank()) {
+            "search:${query.trim().lowercase()}"
+        } else {
+            "category:${category.orEmpty().lowercase()}"
+        }
+        val changedFeed = isRefresh && feedIdentity != lastFeedIdentity
+        if (isRefresh) lastFeedIdentity = feedIdentity
         fetchJob = viewModelScope.launch {
             if (isRefresh) {
                 currentPage = 1
                 hasMorePages = true
                 _isLoading.value = true
+                if (changedFeed) {
+                    _articles.value = emptyList()
+                    _clusters.value = emptyList()
+                }
             } else {
                 _isPaginating.value = true
             }
             _error.value = null
 
             try {
+                if (isRefresh && _articles.value.isEmpty()) {
+                    val cached = repository.cachedFirstPage(query, category, followedTopics.value)
+                    if (cached.isNotEmpty()) {
+                        val cachedClusters = withContext(Dispatchers.Default) {
+                            StoryClusterer.cluster(cached)
+                        }
+                        _articles.value = cached
+                        _clusters.value = cachedClusters
+                    }
+                }
                 val res = when {
                     !query.isNullOrBlank() -> repository.getLatestNews(query.trim(), currentPage)
                     category.equals("For You", ignoreCase = true) ->
@@ -155,14 +184,18 @@ class NewsViewModel @Inject constructor(
                             hasMorePages = false
                         }
 
-                        if (isRefresh) {
-                            _articles.value = newArticles
+                        val updatedArticles = if (isRefresh) {
+                            newArticles
                         } else {
                             val existingSet = _articles.value.map { it.url }.toSet()
                             val uniqueNew = newArticles.filter { it.url !in existingSet }
-                            _articles.value = _articles.value + uniqueNew
+                            _articles.value + uniqueNew
                         }
-                        _clusters.value = StoryClusterer.cluster(_articles.value)
+                        val updatedClusters = withContext(Dispatchers.Default) {
+                            StoryClusterer.cluster(updatedArticles)
+                        }
+                        _articles.value = updatedArticles
+                        _clusters.value = updatedClusters
                         currentPage++
                     }
                     is Resource.Error -> {

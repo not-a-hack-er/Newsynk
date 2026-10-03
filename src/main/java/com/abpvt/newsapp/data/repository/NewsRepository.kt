@@ -29,6 +29,24 @@ class NewsRepository @Inject constructor(
     private val rssFeedSource: RssFeedSource
 ) {
 
+    /** Display the previous feed immediately while the providers refresh in the background. */
+    suspend fun cachedFirstPage(
+        query: String? = null,
+        category: String? = null,
+        topics: Set<String> = emptySet()
+    ): List<Article> {
+        val key = when {
+            !query.isNullOrBlank() -> "search:${query.trim().lowercase()}:1"
+            category.equals("For You", ignoreCase = true) -> {
+                val selected = topics.ifEmpty { setOf("Technology", "World", "Business") }.take(4)
+                "for-you:${selected.map { it.lowercase() }.sorted().joinToString("-")}:1"
+            }
+            category.isNullOrBlank() || category.equals("All", ignoreCase = true) -> "top:1"
+            else -> "category:${category.lowercase()}:1"
+        }
+        return cacheDao.getFeed(key).map { it.toArticle() }
+    }
+
     suspend fun getPersonalizedNews(topics: Set<String>, page: Int = 1): Resource<List<Article>> {
         val selected = topics.ifEmpty { setOf("Technology", "World", "Business") }.take(4)
         val feedKey = "for-you:${selected.map { it.lowercase() }.sorted().joinToString("-")}:$page"

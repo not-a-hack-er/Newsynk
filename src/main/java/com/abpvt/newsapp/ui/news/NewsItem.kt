@@ -2,14 +2,8 @@ package com.abpvt.newsapp.ui.news
 
 import android.content.Intent
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -46,7 +39,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.graphics.painter.ColorPainter
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import com.abpvt.newsapp.data.model.Article
 import com.abpvt.newsapp.ui.theme.*
 import java.text.SimpleDateFormat
@@ -63,8 +60,18 @@ fun NewsItem(
 ) {
     val context = LocalContext.current
 
-    val interactionStates by interactionViewModel.interactionStates.collectAsState()
-    val interactionState = interactionStates[article.url]
+    val interactionFlow = remember(article.url, interactionViewModel) {
+        interactionViewModel.interactionStates.map { it[article.url] }.distinctUntilChanged()
+    }
+    val interactionState by interactionFlow.collectAsState(initial = null)
+    val sourceName = remember(article.url, article.sectionName) { article.source.name }
+    val description = remember(article.fields?.description) { article.description }
+    val readTimeMin = remember(article.title, article.fields) {
+        com.abpvt.newsapp.utils.ReadingTimeCalculator.calculateMinutes(
+            article.title, article.description, article.content
+        )
+    }
+    val publishedTime = remember(article.publishedAt) { formatPublishedTime(article.publishedAt) }
 
     LaunchedEffect(article.url) {
         interactionViewModel.loadInteractions(article.url)
@@ -108,33 +115,32 @@ fun NewsItem(
                     .fillMaxWidth()
                     .height(200.dp)
                     .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(Brush.linearGradient(colors = listOf(GradientStart, GradientEnd))),
+                contentAlignment = Alignment.Center
             ) {
-                SubcomposeAsyncImage(
-                    model = article.urlToImage,
-                    contentDescription = article.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    loading = { ShimmerBox() },
-                    error = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(GradientStart, GradientEnd)
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.AutoStories,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.85f),
-                                modifier = Modifier.size(48.dp)
-                            )
-                        }
-                    }
+                Icon(
+                    Icons.Default.AutoStories,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.72f),
+                    modifier = Modifier.size(42.dp)
                 )
+                if (!article.urlToImage.isNullOrBlank()) {
+                    val imageRequest = remember(article.urlToImage) {
+                        ImageRequest.Builder(context)
+                            .data(article.urlToImage)
+                            .size(960, 600)
+                            .crossfade(false)
+                            .build()
+                    }
+                    AsyncImage(
+                        model = imageRequest,
+                        contentDescription = article.title,
+                        contentScale = ContentScale.Crop,
+                        placeholder = ColorPainter(Color.Transparent),
+                        error = ColorPainter(Color.Transparent),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -160,14 +166,14 @@ fun NewsItem(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = getSourceBadgeColor(article.source.name).copy(alpha = 0.12f)
+                        color = getSourceBadgeColor(sourceName).copy(alpha = 0.12f)
                     ) {
                         Text(
-                            text = article.source.name,
+                            text = sourceName,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold
                             ),
-                            color = getSourceBadgeColor(article.source.name),
+                            color = getSourceBadgeColor(sourceName),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
@@ -181,14 +187,11 @@ fun NewsItem(
                         AssistChip(
                             onClick = {},
                             enabled = false,
-                            label = { Text("Offline") },
+                            label = { Text("Cached") },
                             modifier = Modifier.height(30.dp)
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val readTimeMin = com.abpvt.newsapp.utils.ReadingTimeCalculator.calculateMinutes(
-                            article.title, article.description, article.content
-                        )
                         Icon(
                             Icons.Default.Schedule,
                             contentDescription = null,
@@ -203,7 +206,7 @@ fun NewsItem(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = formatPublishedTime(article.publishedAt),
+                            text = publishedTime,
                             style = MaterialTheme.typography.labelSmall,
                             color = MetadataText
                         )
@@ -223,7 +226,6 @@ fun NewsItem(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                val description = article.description
                 if (!description.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
@@ -354,31 +356,6 @@ fun NewsItem(
             }
         }
     }
-}
-
-@Composable
-private fun ShimmerBox() {
-    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val shimmerX by infiniteTransition.animateFloat(
-        initialValue = -500f,
-        targetValue  = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation  = tween(1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_x"
-    )
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(ShimmerBase, ShimmerHighlight, ShimmerBase),
-                    start  = Offset(shimmerX, 0f),
-                    end    = Offset(shimmerX + 400f, 400f)
-                )
-            )
-    )
 }
 
 private fun getSourceBadgeColor(sourceName: String): Color {

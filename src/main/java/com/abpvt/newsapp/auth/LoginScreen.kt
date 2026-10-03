@@ -11,7 +11,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -19,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.ui.res.painterResource
 import com.abpvt.newsapp.R
 import androidx.compose.material.icons.filled.Visibility
@@ -30,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -125,21 +122,15 @@ fun LoginScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
                         modifier = Modifier
-                            .size(88.dp)
+                            .size(112.dp)
                             .scale(logoScale)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(Color(0xFF181632), Color(0xFF060515))
-                                )
-                            )
-                            .border(1.dp, Amber.copy(alpha = 0.55f), CircleShape),
+                            .clip(RoundedCornerShape(28.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(R.drawable.ic_launcher_foreground),
+                            painter = painterResource(R.drawable.newsynk_logo),
                             contentDescription = "Newsynk",
-                            modifier = Modifier.size(84.dp).graphicsLayer(scaleX = 1.7f, scaleY = 1.7f)
+                            modifier = Modifier.size(112.dp).scale(1.07f)
                         )
                     }
                     Spacer(modifier = Modifier.height(22.dp))

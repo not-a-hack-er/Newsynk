@@ -9,10 +9,16 @@ import com.abpvt.newsapp.notifications.NotificationsPrefs
 import com.google.firebase.FirebaseApp
 import com.google.firebase.analytics.FirebaseAnalytics
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
 class NewsApplication : Application(), Configuration.Provider {
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -40,10 +46,10 @@ class NewsApplication : Application(), Configuration.Provider {
         // Schedule daily digest if enabled (default: true)
         val prefs = getSharedPreferences(NotificationsPrefs.PREFS_NAME, MODE_PRIVATE)
         if (prefs.getBoolean(NotificationsPrefs.KEY_NOTIF_DIGEST, true)) {
-            DailyDigestScheduler.schedule(
-                this,
-                prefs.getInt(NotificationsPrefs.KEY_DIGEST_HOUR, 8)
-            )
+            val digestHour = prefs.getInt(NotificationsPrefs.KEY_DIGEST_HOUR, 8)
+            applicationScope.launch {
+                DailyDigestScheduler.schedule(this@NewsApplication, digestHour)
+            }
         }
     }
 }

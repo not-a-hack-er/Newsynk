@@ -3,8 +3,10 @@ package com.abpvt.newsapp.ui.news.components
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.RectF
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -27,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import com.abpvt.newsapp.R
 import com.abpvt.newsapp.data.model.Article
 import com.abpvt.newsapp.ui.theme.Amber
 import com.abpvt.newsapp.ui.theme.DeepBlue
@@ -179,14 +182,16 @@ private fun shareStoryCard(context: Context, article: Article) {
         }
         canvas.drawRoundRect(cardRect, 48f, 48f, cardPaint)
 
-        // Newsynk Logo Badge
+        // Keep shared story cards consistent with the app's supplied logo.
+        val brandLogo = BitmapFactory.decodeResource(context.resources, R.drawable.newsynk_logo)
+        canvas.drawBitmap(brandLogo, null, Rect(140, 394, 260, 514), Paint(Paint.FILTER_BITMAP_FLAG))
         val logoPaint = Paint().apply {
-            color = android.graphics.Color.parseColor("#1565C0")
+            color = android.graphics.Color.parseColor("#142B53")
             textSize = 64f
             isFakeBoldText = true
             isAntiAlias = true
         }
-        canvas.drawText("📰 Newsynk", 140f, 500f, logoPaint)
+        canvas.drawText("NEWSYNK", 284f, 484f, logoPaint)
 
         // Source badge
         val sourcePaint = Paint().apply {

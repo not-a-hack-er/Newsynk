@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.0 - 2026-10-03
+
+- Adopted the supplied Newsynk logo for the launcher, sign-in, Home header, and story-card sharing.
+- Reduced feed jank by removing whole-list crossfades and per-card image shimmer, bounding image decode size, and avoiding repeated interaction fetches during scroll.
+- Added immediate cached-feed display while fresh news loads, moved story grouping and digest scheduling off the main thread, and avoided duplicate search requests.
+
 ## 2.2.0 - 2026-10-03
 
 - Preserved the original launcher icon and reused its existing mark on sign-in and the Home header for consistent branding.

@@ -22,17 +22,30 @@ class ArticleInteractionViewModel @Inject constructor(
     private val _interactionStates = MutableStateFlow<Map<String, ArticleInteractionState>>(emptyMap())
     val interactionStates: StateFlow<Map<String, ArticleInteractionState>> = _interactionStates
 
+    // Lazy rows can leave and re-enter composition while scrolling. Avoid a pair
+    // of Firestore reads every time the same article becomes visible again.
+    private val loadingUrls = mutableSetOf<String>()
+    private val loadedAt = mutableMapOf<String, Long>()
+
     fun loadInteractions(articleUrl: String) {
+        val now = System.currentTimeMillis()
+        if (articleUrl in loadingUrls || now - (loadedAt[articleUrl] ?: 0L) < 60_000L) return
+        loadingUrls += articleUrl
         viewModelScope.launch {
-            val result = repository.getInteractionState(articleUrl)
-            if (result is Resource.Success) {
-                result.data?.let { state ->
-                    _interactionStates.update { currentMap ->
-                        currentMap.toMutableMap().apply {
-                            put(articleUrl, state)
+            try {
+                val result = repository.getInteractionState(articleUrl)
+                if (result is Resource.Success) {
+                    result.data?.let { state ->
+                        _interactionStates.update { currentMap ->
+                            currentMap.toMutableMap().apply {
+                                put(articleUrl, state)
+                            }
                         }
+                        loadedAt[articleUrl] = System.currentTimeMillis()
                     }
                 }
+            } finally {
+                loadingUrls -= articleUrl
             }
         }
     }

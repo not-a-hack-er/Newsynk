@@ -2,7 +2,9 @@
 
 Newsynk is a native Android news aggregator built with Kotlin and Jetpack Compose. It combines stories from The Guardian, GNews, Currents, and NewsData.io (when configured), then presents them in a searchable, category-based feed with bookmarking, voting, comments, sharing, and configurable notifications. Without keys, it falls back to BBC News and Guardian RSS headlines.
 
-![Newsynk promotional artwork](docs/screenshots/newsynk_viral_launch_final.png)
+![Newsynk logo](src/main/res/drawable-nodpi/newsynk_logo.png)
+
+The launcher and in-app brand mark use this supplied artwork.
 
 ## Features
 
