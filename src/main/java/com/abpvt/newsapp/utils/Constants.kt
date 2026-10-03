@@ -7,7 +7,7 @@ object Constants {
     val USE_SECURE_BACKEND: Boolean get() = !BACKEND_BASE_URL.contains("example.invalid")
     // Guardian
     const val GUARDIAN_BASE_URL = "https://content.guardianapis.com/"
-    val GUARDIAN_API_KEY: String get() = BuildConfig.NEWS_API_KEY.ifBlank { "test" }
+    val GUARDIAN_API_KEY: String get() = BuildConfig.NEWS_API_KEY
 
     // GNews
     const val GNEWS_BASE_URL = "https://gnews.io/api/v4/"

@@ -98,7 +98,7 @@ fun LoginScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(GradientStart, GradientEnd, Color(0xFF1A237E))
+                    colors = listOf(GradientStart, GradientEnd, Color(0xFF0B1528))
                 )
             )
     ) {
@@ -138,23 +138,31 @@ fun LoginScreen(
                             modifier = Modifier.size(38.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(22.dp))
+                    Text(
+                        text = "THE DAILY EDITION",
+                        fontSize = 10.sp,
+                        letterSpacing = 2.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Amber
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Newsynk",
-                        fontSize = 30.sp,
+                        fontSize = 38.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )
                     Text(
-                        text = "Stay synced. Stay ahead.",
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 4.dp)
+                        text = "Your world, in focus.",
+                        fontSize = 15.sp,
+                        color = Color.White.copy(alpha = 0.78f),
+                        modifier = Modifier.padding(top = 6.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             // ── Input Card ───────────────────────────────────────────────────
             AnimatedVisibility(
@@ -162,12 +170,12 @@ fun LoginScreen(
                 enter = fadeIn(tween(800, delayMillis = 200)) + slideInVertically(tween(800, delayMillis = 200)) { 80 }
             ) {
                 Card(
-                    shape = RoundedCornerShape(24.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    shape = RoundedCornerShape(30.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 18.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(26.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -177,7 +185,7 @@ fun LoginScreen(
                             color = DeepBlue
                         )
                         Text(
-                            text = "Sign in to your account",
+                            text = "Your stories are waiting.",
                             fontSize = 13.sp,
                             color = Color.Gray,
                             modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
@@ -256,13 +264,7 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         // ── Remember Me & Forgot Password ─────────────────────
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(
                                     checked = rememberMe,
@@ -282,7 +284,8 @@ fun LoginScreen(
                             }
                             TextButton(
                                 onClick = { navController.navigate(Screen.ForgotPassword.route) },
-                                contentPadding = PaddingValues(0.dp)
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.align(Alignment.End)
                             ) {
                                 Text(
                                     "Forgot password?",
@@ -310,23 +313,25 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         // ── Sign In Button ────────────────────────────────────
-                        if (isLoading) {
-                            CircularProgressIndicator(color = DeepBlue)
-                        } else {
-                            Button(
-                                onClick = { viewModel.login(email, password, rememberMe) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                enabled = email.isNotBlank() && password.isNotBlank(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = DeepBlue,
-                                    contentColor = Color.White
+                        Button(
+                            onClick = { viewModel.login(email, password, rememberMe) },
+                            modifier = Modifier.fillMaxWidth().height(54.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = DeepBlue,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
                                 )
-                            ) {
+                            } else {
                                 Text(
-                                    text = "Sign In",
+                                    text = "Continue to Newsynk",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )

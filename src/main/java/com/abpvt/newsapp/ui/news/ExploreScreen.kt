@@ -13,12 +13,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -26,7 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -53,12 +56,14 @@ fun ExploreScreen(
     val recent by viewModel.recentSearches.collectAsState()
     val topics by viewModel.followedTopics.collectAsState()
     val articles by viewModel.articles.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
     val clusters by viewModel.clusters.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Explore") },
+                title = { Text("Explore", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -72,7 +77,7 @@ fun ExploreScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                TextField(
+                OutlinedTextField(
                     value = query,
                     onValueChange = {
                         viewModel.activateSearch()
@@ -80,6 +85,7 @@ fun ExploreScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search topics, sources or keywords") },
+                    shape = RoundedCornerShape(18.dp),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (query.isNotBlank()) {
@@ -142,6 +148,27 @@ fun ExploreScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold
                 )
+            }
+
+            if (isLoading && articles.isEmpty()) {
+                item { CircularProgressIndicator(modifier = Modifier.padding(24.dp)) }
+            } else if (articles.isEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 20.dp)) {
+                        Text(
+                            if (query.isBlank()) "Stories are unavailable right now" else "No recent stories match that search",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            if (query.isBlank()) "Check your connection or try again."
+                            else "Try a broader phrase. Search covers recent feed stories without a provider key.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (error != null) Button(onClick = viewModel::refresh) { Text("Try again") }
+                    }
+                }
             }
 
             items(articles, key = { it.url }) { article ->

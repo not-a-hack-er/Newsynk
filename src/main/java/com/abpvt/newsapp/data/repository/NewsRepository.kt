@@ -23,7 +23,8 @@ class NewsRepository @Inject constructor(
     private val gNewsService: GNewsApiService,
     private val currentsService: CurrentsApiService,
     private val backendService: BackendNewsApiService,
-    private val cacheDao: ArticleCacheDao
+    private val cacheDao: ArticleCacheDao,
+    private val rssFeedSource: RssFeedSource
 ) {
 
     suspend fun getPersonalizedNews(topics: Set<String>, page: Int = 1): Resource<List<Article>> {
@@ -50,7 +51,8 @@ class NewsRepository @Inject constructor(
                         }
                     }.thenByDescending { it.publishedAt }
                 )
-            deliver(feedKey, articles, "Your personalized feed is not available right now.")
+            val fallback = if (articles.isEmpty()) rssFeedSource.headlines(page) else articles
+            deliver(feedKey, fallback, "Your personalized feed is not available right now.")
         } catch (e: Exception) {
             cachedOrError(feedKey, e.message ?: "Your personalized feed is not available right now.")
         }
@@ -64,7 +66,7 @@ class NewsRepository @Inject constructor(
             try {
                 if (Constants.USE_SECURE_BACKEND) {
                     val articles = safeCall { backendService.getFeed(page = page) }?.articles.orEmpty()
-                    return@withContext deliver("top:$page", articles, "No articles available. Please check your connection.")
+                    return@withContext deliver("top:$page", articles.ifEmpty { rssFeedSource.headlines(page) }, "No articles available. Please check your connection.")
                 }
                 val guardianDeferred  = async { fetchGuardianHeadlines(page) }
                 val gNewsDeferred     = async { fetchGNewsHeadlines(page) }
@@ -76,7 +78,7 @@ class NewsRepository @Inject constructor(
 
                 val merged = weightedMerge(guardianArticles, gNewsArticles, currentsArticles)
 
-                deliver("top:$page", merged, "No articles available. Please check your connection.")
+                deliver("top:$page", merged.ifEmpty { rssFeedSource.headlines(page) }, "No articles available. Please check your connection.")
             } catch (e: Exception) {
                 cachedOrError("top:$page", e.message ?: "Unknown error occurred")
             }
@@ -133,21 +135,33 @@ class NewsRepository @Inject constructor(
                     }?.articles.orEmpty()
                     return@withContext deliver(
                         "category:$catLower:$page",
-                        articles,
+                        articles.ifEmpty { rssFeedSource.category(category, page) },
+                        "No $category stories are available right now."
+                    )
+                }
+                if (Constants.GUARDIAN_API_KEY.isBlank() &&
+                    Constants.GNEWS_API_KEY.isBlank() && Constants.CURRENTS_API_KEY.isBlank()
+                ) {
+                    return@withContext deliver(
+                        "category:$catLower:$page",
+                        rssFeedSource.category(category, page),
                         "No $category stories are available right now."
                     )
                 }
                 val guardianDeferred = async {
+                    if (Constants.GUARDIAN_API_KEY.isBlank()) emptyList() else
                     safeCall { guardianService.getBySection(section = guardianSection, page = page) }
                         ?.articles ?: emptyList()
                 }
 
                 val gNewsDeferred = async {
+                    if (Constants.GNEWS_API_KEY.isBlank()) emptyList() else
                     safeCall { gNewsService.getTopHeadlines(category = gNewsCategory, page = page) }
                         ?.articles?.map { it.toArticle() } ?: emptyList()
                 }
 
                 val currentsDeferred = async {
+                    if (Constants.CURRENTS_API_KEY.isBlank()) emptyList() else
                     safeCall { currentsService.getByCategory(category = currentsCategory, page = page) }
                         ?.news?.map { it.toArticle() } ?: emptyList()
                 }
@@ -166,7 +180,7 @@ class NewsRepository @Inject constructor(
                         cache("category:$catLower:$page", articles)
                         Resource.Success(articles)
                     } else {
-                        cachedOrError("category:$catLower:$page", "No $category stories are available right now.")
+                        deliver("category:$catLower:$page", rssFeedSource.category(category, page), "No $category stories are available right now.")
                     }
                 } else {
                     deliver("category:$catLower:$page", merged, "No $category stories are available right now.")
@@ -189,19 +203,22 @@ class NewsRepository @Inject constructor(
                     }?.articles.orEmpty()
                     return@withContext deliver(
                         "search:${query.trim().lowercase()}:$page",
-                        articles,
+                        articles.ifEmpty { rssFeedSource.search(query, page) },
                         "No results found for \"$query\""
                     )
                 }
                 val guardianDeferred = async {
+                    if (Constants.GUARDIAN_API_KEY.isBlank()) emptyList() else
                     safeCall { guardianService.getLatestNews(query = query, page = page) }
                         ?.articles ?: emptyList()
                 }
                 val gNewsDeferred = async {
+                    if (Constants.GNEWS_API_KEY.isBlank()) emptyList() else
                     safeCall { gNewsService.searchNews(query = query, page = page) }
                         ?.articles?.map { it.toArticle() } ?: emptyList()
                 }
                 val currentsDeferred = async {
+                    if (Constants.CURRENTS_API_KEY.isBlank()) emptyList() else
                     safeCall { currentsService.searchNews(keywords = query, page = page) }
                         ?.news?.map { it.toArticle() } ?: emptyList()
                 }
@@ -212,7 +229,7 @@ class NewsRepository @Inject constructor(
                     currents = currentsDeferred.await()
                 )
 
-                deliver("search:${query.trim().lowercase()}:$page", merged, "No results found for \"$query\"")
+                deliver("search:${query.trim().lowercase()}:$page", merged.ifEmpty { rssFeedSource.search(query, page) }, "No results found for \"$query\"")
             } catch (e: Exception) {
                 cachedOrError(
                     "search:${query.trim().lowercase()}:$page",
@@ -225,14 +242,15 @@ class NewsRepository @Inject constructor(
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private suspend fun fetchGuardianHeadlines(page: Int): List<Article> =
-        safeCall { guardianService.getTopHeadlines(page = page) }?.articles ?: emptyList()
+        if (Constants.GUARDIAN_API_KEY.isBlank()) emptyList()
+        else safeCall { guardianService.getTopHeadlines(page = page) }?.articles ?: emptyList()
 
     private suspend fun fetchGNewsHeadlines(page: Int): List<Article> =
-        safeCall { gNewsService.getTopHeadlines(page = page) }
+        if (Constants.GNEWS_API_KEY.isBlank()) emptyList() else safeCall { gNewsService.getTopHeadlines(page = page) }
             ?.articles?.map { it.toArticle() } ?: emptyList()
 
     private suspend fun fetchCurrentsHeadlines(page: Int): List<Article> =
-        safeCall { currentsService.getLatestNews(page = page) }
+        if (Constants.CURRENTS_API_KEY.isBlank()) emptyList() else safeCall { currentsService.getLatestNews(page = page) }
             ?.news?.map { it.toArticle() } ?: emptyList()
 
     private suspend fun <T> safeCall(call: suspend () -> retrofit2.Response<T>): T? {

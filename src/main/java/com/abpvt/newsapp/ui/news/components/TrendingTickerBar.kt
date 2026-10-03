@@ -19,14 +19,8 @@ import androidx.compose.ui.unit.sp
 import com.abpvt.newsapp.ui.theme.Amber
 
 val trendingTopics = listOf(
-    "#ArtificialIntelligence",
-    "#GlobalEconomy",
-    "#SpaceX",
-    "#ChampionsLeague",
-    "#CyberSecurity",
-    "#ClimateAction",
-    "#ElectricVehicles",
-    "#MedicalBreakthrough"
+    "Artificial intelligence", "World economy", "Technology", "Climate",
+    "Health", "Football", "Electric vehicles"
 )
 
 @Composable
@@ -47,7 +41,7 @@ fun TrendingTickerBar(
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
-                text = "⚡ TRENDING",
+                text = "DISCOVER",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Amber
@@ -64,9 +58,7 @@ fun TrendingTickerBar(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.clickable {
-                        // Extract query keyword from tag
-                        val cleanQuery = topic.removePrefix("#")
-                        onTopicClick(cleanQuery)
+                        onTopicClick(topic)
                     }
                 ) {
                     Text(

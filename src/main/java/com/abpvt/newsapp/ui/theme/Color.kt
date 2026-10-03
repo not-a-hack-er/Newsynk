@@ -4,18 +4,18 @@ import androidx.compose.ui.graphics.Color
 
 // ── Premium Palette ───────────────────────────────────────────────────────────
 // Primary: Deep Blue / Indigo
-val DeepBlue        = Color(0xFF1565C0)
-val DeepBlueDark    = Color(0xFF003c8f)
-val Indigo          = Color(0xFF283593)
+val DeepBlue        = Color(0xFF326BD8)
+val DeepBlueDark    = Color(0xFF203E7A)
+val Indigo          = Color(0xFF294B89)
 
 // Accent: Amber / Gold
-val Amber           = Color(0xFFFFB300)
-val AmberDark       = Color(0xFFFF8F00)
+val Amber           = Color(0xFFF3B85A)
+val AmberDark       = Color(0xFFD99236)
 
 // Dark Theme
 val DarkSurface     = Color(0xFF121212)
-val DarkBackground  = Color(0xFF1A1A2E)
-val DarkCard        = Color(0xFF1E1E30)
+val DarkBackground  = Color(0xFF101827)
+val DarkCard        = Color(0xFF1D293B)
 val DarkOnPrimary   = Color(0xFFFFFFFF)
 
 // Light Theme
@@ -27,9 +27,9 @@ val NewsCardBackground   = Color(0xFFFFFFFF)
 val ScreenBackground     = Color(0xFFF4F6FB)
 
 // Gradient Colors (used in TopAppBar, placeholders, Login bg)
-val GradientStart   = Color(0xFF1565C0)
-val GradientMid     = Color(0xFF1976D2)
-val GradientEnd     = Color(0xFF283593)
+val GradientStart   = Color(0xFF122340)
+val GradientMid     = Color(0xFF1D3762)
+val GradientEnd     = Color(0xFF294B89)
 
 // Dynamic Source Badge Colors
 val SourceBadge1    = Color(0xFF1565C0)   // Deep Blue

@@ -69,7 +69,7 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
    CURRENTS_API_KEY=your_currents_key
    ```
 
-   Guardian falls back to its public `test` key when `NEWS_API_KEY` is blank. GNews and Currents require their own keys.
+   Provider keys are optional for local reading. Without them, Newsynk uses public BBC News and Guardian RSS feeds for current headlines and categories. Search in this mode checks only recent stories from those feeds; full search and richer coverage need provider keys or the backend. The Guardian `test` key is not used because it no longer returns content reliably.
 
    Production release builds deliberately exclude all three provider keys. Configure the secure backend URL instead:
 

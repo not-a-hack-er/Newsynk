@@ -77,7 +77,7 @@ fun RegisterScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(GradientStart, GradientEnd, Color(0xFF1A237E))
+                    colors = listOf(GradientStart, GradientEnd, Color(0xFF0B1528))
                 )
             )
     ) {
@@ -92,25 +92,35 @@ fun RegisterScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Create Account",
+                text = "NEWSYNK  /  JOIN THE CONVERSATION",
+                fontSize = 10.sp,
+                letterSpacing = 1.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = Amber
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "A better way to stay informed.",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+                color = Color.White,
+                textAlign = TextAlign.Center
             )
             Text(
-                text = "Join Newsynk today",
+                text = "Create your free account to shape your daily briefing.",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 4.dp, bottom = 32.dp)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp, bottom = 28.dp)
             )
 
             Card(
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = RoundedCornerShape(30.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 18.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(26.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // ── Full Name ─────────────────────────────────────────────
@@ -228,23 +238,25 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Register Button ───────────────────────────────────────
-                    if (isLoading) {
-                        CircularProgressIndicator(color = DeepBlue)
-                    } else {
-                        Button(
-                            onClick = { viewModel.register(name, email, password) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            enabled = name.isNotBlank() && email.isNotBlank() && password.length >= 6,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = DeepBlue,
-                                contentColor = Color.White
+                    Button(
+                        onClick = { viewModel.register(name, email, password) },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = !isLoading && name.isNotBlank() && email.isNotBlank() && password.length >= 6,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DeepBlue,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
                             )
-                        ) {
+                        } else {
                             Text(
-                                text = "Create Account",
+                                text = "Create my account",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )

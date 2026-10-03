@@ -64,7 +64,7 @@ fun ForgotPasswordScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(GradientStart, GradientEnd, Color(0xFF1A237E))
+                    colors = listOf(GradientStart, GradientEnd, Color(0xFF0B1528))
                 )
             )
     ) {

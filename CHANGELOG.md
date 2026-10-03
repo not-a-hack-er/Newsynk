@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0 - 2026-10-03
+
+- Replaced the unusable Guardian `test` key path with a public BBC/Guardian RSS fallback for headlines, categories, and recent-story search.
+- Improved feed retry and empty states, search readability, category chips, bottom navigation, and app colors.
+- Refreshed sign-in, registration, and password-reset screens with a cohesive editorial palette and clearer hierarchy.
+- Added RSS parser and search-normalization tests.
+
 ## 2.0.2 - 2026-10-03
 
 - Fixed Google sign-in by using the web OAuth client generated from the Firebase configuration when no local override is provided.

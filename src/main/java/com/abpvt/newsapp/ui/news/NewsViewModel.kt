@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.isActive
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -52,6 +55,7 @@ class NewsViewModel @Inject constructor(
 
     private var currentPage = 1
     private var hasMorePages = true
+    private var fetchJob: Job? = null
 
     init {
         // Observe search query with debounce
@@ -89,7 +93,10 @@ class NewsViewModel @Inject constructor(
 
     fun submitSearch(query: String = _searchQuery.value) {
         personalizationRepository.rememberSearch(query)
-        if (query.isNotBlank()) fetchNews(query = query, category = null, isRefresh = true)
+        if (query.isNotBlank()) {
+            _searchQuery.value = query
+            fetchNews(query = query, category = null, isRefresh = true)
+        }
     }
 
     fun clearRecentSearches() = personalizationRepository.clearRecentSearches()
@@ -121,7 +128,8 @@ class NewsViewModel @Inject constructor(
     }
 
     private fun fetchNews(query: String? = null, category: String? = null, isRefresh: Boolean = true) {
-        viewModelScope.launch {
+        if (isRefresh) fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
             if (isRefresh) {
                 currentPage = 1
                 hasMorePages = true
@@ -164,12 +172,16 @@ class NewsViewModel @Inject constructor(
                     }
                     is Resource.Loading -> { /* no-op */ }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 if (isRefresh) _error.value = e.localizedMessage ?: "An unexpected error occurred"
                 hasMorePages = false
             } finally {
-                _isLoading.value = false
-                _isPaginating.value = false
+                if (isActive) {
+                    _isLoading.value = false
+                    _isPaginating.value = false
+                }
             }
         }
     }

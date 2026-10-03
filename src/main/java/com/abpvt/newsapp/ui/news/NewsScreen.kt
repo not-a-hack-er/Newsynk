@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -106,14 +108,14 @@ fun NewsScreen(
                                 onValueChange = { newsViewModel.onSearchQueryChanged(it) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp),
+                                    .heightIn(min = 56.dp),
                                 placeholder = {
                                     Text(
                                         text = "Search news...",
                                         color = Color.White.copy(alpha = 0.6f)
                                     )
                                 },
-                                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                                 keyboardActions = KeyboardActions(onSearch = {
@@ -223,20 +225,23 @@ fun NewsScreen(
                         return@Column
                     }
                     if (error != null && list.isEmpty()) {
-                        Text(
-                            text = "Error: ${error ?: "Unknown error"}",
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(16.dp)
+                        EmptyNewsState(
+                            title = if (isSearchActive) "No matching stories yet" else "Stories are temporarily unavailable",
+                            message = if (isSearchActive)
+                                "Try a broader search. Keyless mode searches recent stories from our public RSS sources."
+                            else "Check your connection and try again. Recent stories will appear here when a source responds.",
+                            onRetry = newsViewModel::refresh
                         )
+                        return@Column
                     }
 
                     if (!loading && list.isEmpty() && error == null) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = "No articles available", style = MaterialTheme.typography.titleMedium)
-                        }
+                        EmptyNewsState(
+                            title = if (isSearchActive) "Search for a story" else "Nothing new just yet",
+                            message = if (isSearchActive) "Explore a topic, person, or publisher." else "Pull down to refresh the latest coverage.",
+                            onRetry = newsViewModel::refresh
+                        )
+                        return@Column
                     }
 
                     LazyColumn(
@@ -248,11 +253,25 @@ fun NewsScreen(
                     ) {
                         if (list.isNotEmpty() && !isSearchActive) {
                             item {
-                                Text(
-                                    text = if (selectedCategory == "For You") "Picked for you" else "Top story",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.ExtraBold
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Text(
+                                        text = "YOUR DAILY BRIEFING",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.5.sp
+                                    )
+                                    Text(
+                                        text = if (selectedCategory == "For You") "Selected for you" else "The latest stories",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                    Text(
+                                        text = "Fresh perspectives from across the news.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                         }
 
@@ -300,4 +319,35 @@ fun NewsScreen(
         }
     }
 }
+}
+
+@Composable
+private fun EmptyNewsState(title: String, message: String, onRetry: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(28.dp),
+            tonalElevation = 4.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(28.dp),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), shape = RoundedCornerShape(16.dp)) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(14.dp).size(26.dp))
+                }
+                Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(message, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Button(onClick = onRetry, shape = RoundedCornerShape(14.dp)) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Try again")
+                }
+            }
+        }
+    }
 }

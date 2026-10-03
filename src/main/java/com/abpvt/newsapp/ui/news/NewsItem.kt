@@ -20,7 +20,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -123,7 +126,12 @@ fun NewsItem(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("📰", fontSize = 48.sp)
+                            Icon(
+                                Icons.Default.AutoStories,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.85f),
+                                modifier = Modifier.size(48.dp)
+                            )
                         }
                     }
                 )
@@ -181,8 +189,15 @@ fun NewsItem(
                         val readTimeMin = com.abpvt.newsapp.utils.ReadingTimeCalculator.calculateMinutes(
                             article.title, article.description, article.content
                         )
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MetadataText,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "⏱️ ${readTimeMin}m read",
+                            text = "${readTimeMin}m read",
                             style = MaterialTheme.typography.labelSmall,
                             color = MetadataText
                         )
@@ -297,7 +312,12 @@ fun NewsItem(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Text("💬", fontSize = 16.sp)
+                            Icon(
+                                Icons.Default.ChatBubbleOutline,
+                                contentDescription = "Comments",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
 
@@ -309,7 +329,7 @@ fun NewsItem(
                         modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
-                            Icons.Filled.Star,
+                            Icons.Filled.Bookmark,
                             contentDescription = "Bookmark",
                             tint = if (isBookmarked) BookmarkActive else IconInactive,
                             modifier = Modifier

@@ -1,12 +1,14 @@
-# Copy this file to local.properties and replace the placeholders.
+# Copy this file to local.properties and set only the services you use.
 # sdk.dir uses a Windows example; use your local Android SDK path.
 sdk.dir=C\:\\Users\\your-user\\AppData\\Local\\Android\\Sdk
-NEWS_API_KEY=your_guardian_api_key
-GNEWS_API_KEY=your_gnews_api_key
-CURRENTS_API_KEY=your_currents_api_key
+# Optional news-provider keys. Leave blank to use public RSS feeds.
+NEWS_API_KEY=
+GNEWS_API_KEY=
+CURRENTS_API_KEY=
 # Optional: normally generated from google-services.json.
 # GOOGLE_WEB_CLIENT_ID=your_web_client_id.apps.googleusercontent.com
-NEWSYNK_BACKEND_URL=https://your-region-your-project.cloudfunctions.net/api/
+# Optional production backend. Leave blank until deployed.
+NEWSYNK_BACKEND_URL=
 
 # Optional release signing. Prefer an absolute path outside the repository.
 RELEASE_STORE_FILE=C\:\\Users\\your-user\\.newsynk\\newsynk-release.jks

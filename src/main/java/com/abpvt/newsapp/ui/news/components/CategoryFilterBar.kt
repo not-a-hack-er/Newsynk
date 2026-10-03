@@ -22,17 +22,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.abpvt.newsapp.ui.theme.DeepBlue
 
-data class NewsCategory(val name: String, val emoji: String)
+data class NewsCategory(val name: String)
 
 val categoriesList = listOf(
-    NewsCategory("For You", "✦"),
-    NewsCategory("All", "🔥"),
-    NewsCategory("Tech", "💻"),
-    NewsCategory("Business", "📈"),
-    NewsCategory("Sports", "🏆"),
-    NewsCategory("Health", "🏥"),
-    NewsCategory("World", "🌍"),
-    NewsCategory("Entertainment", "🎬")
+    NewsCategory("For You"),
+    NewsCategory("All"),
+    NewsCategory("Tech"),
+    NewsCategory("Business"),
+    NewsCategory("Sports"),
+    NewsCategory("Health"),
+    NewsCategory("World"),
+    NewsCategory("Entertainment")
 )
 
 @Composable
@@ -73,8 +73,6 @@ fun CategoryFilterBar(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
-                    Text(text = cat.emoji, fontSize = 14.sp)
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = cat.name,
                         fontSize = 13.sp,
