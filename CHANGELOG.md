@@ -6,6 +6,7 @@
 - Improved feed retry and empty states, search readability, category chips, bottom navigation, and app colors.
 - Refreshed sign-in, registration, and password-reset screens with a cohesive editorial palette and clearer hierarchy.
 - Added RSS parser and search-normalization tests.
+- Fixed Saved-to-reader navigation so it opens the selected story, improved the Saved empty/error states, and standardized profile and article icons.
 
 ## 2.0.2 - 2026-10-03
 

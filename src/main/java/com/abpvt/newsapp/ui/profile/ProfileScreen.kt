@@ -64,19 +64,19 @@ private val avatarPalettes = listOf(
 
 // ── Notification row model ────────────────────────────────────────────────────
 private data class NotifCategory(
-    val label: String, val emoji: String, val description: String,
+    val label: String, val description: String,
     val prefKey: String, val topic: String
 )
 private val notifCategories = listOf(
-    NotifCategory("Breaking News",   "🔥", "Major urgent alerts",             NotificationsPrefs.KEY_NOTIF_BREAKING,     NotificationsPrefs.TOPIC_BREAKING_NEWS),
-    NotifCategory("Sports",          "🏆", "Match results & live scores",     NotificationsPrefs.KEY_NOTIF_SPORTS,       NotificationsPrefs.TOPIC_SPORTS),
-    NotifCategory("Technology",      "💻", "Tech launches & AI updates",      NotificationsPrefs.KEY_NOTIF_TECH,         NotificationsPrefs.TOPIC_TECH),
-    NotifCategory("Business",        "💼", "Markets, finance & economy",      NotificationsPrefs.KEY_NOTIF_BUSINESS,     NotificationsPrefs.TOPIC_BUSINESS),
-    NotifCategory("Health",          "🏥", "Health, science & wellness",      NotificationsPrefs.KEY_NOTIF_HEALTH,       NotificationsPrefs.TOPIC_HEALTH),
-    NotifCategory("World News",      "🌍", "Global events & politics",        NotificationsPrefs.KEY_NOTIF_WORLD,        NotificationsPrefs.TOPIC_WORLD),
-    NotifCategory("Entertainment",   "🎬", "Movies, music & celebrity news",  NotificationsPrefs.KEY_NOTIF_ENTERTAINMENT, NotificationsPrefs.TOPIC_ENTERTAINMENT),
-    NotifCategory("Comment Replies", "💬", "Replies to your comments",        NotificationsPrefs.KEY_NOTIF_COMMENTS,     NotificationsPrefs.TOPIC_COMMENTS),
-    NotifCategory("Daily Digest",    "☀️", "Personalized briefing at your chosen time", NotificationsPrefs.KEY_NOTIF_DIGEST, ""),
+    NotifCategory("Breaking News",   "Major urgent alerts",             NotificationsPrefs.KEY_NOTIF_BREAKING,     NotificationsPrefs.TOPIC_BREAKING_NEWS),
+    NotifCategory("Sports",          "Match results & live scores",     NotificationsPrefs.KEY_NOTIF_SPORTS,       NotificationsPrefs.TOPIC_SPORTS),
+    NotifCategory("Technology",      "Tech launches & AI updates",      NotificationsPrefs.KEY_NOTIF_TECH,         NotificationsPrefs.TOPIC_TECH),
+    NotifCategory("Business",        "Markets, finance & economy",      NotificationsPrefs.KEY_NOTIF_BUSINESS,     NotificationsPrefs.TOPIC_BUSINESS),
+    NotifCategory("Health",          "Health, science & wellness",      NotificationsPrefs.KEY_NOTIF_HEALTH,       NotificationsPrefs.TOPIC_HEALTH),
+    NotifCategory("World News",      "Global events & politics",        NotificationsPrefs.KEY_NOTIF_WORLD,        NotificationsPrefs.TOPIC_WORLD),
+    NotifCategory("Entertainment",   "Movies, music & celebrity news",  NotificationsPrefs.KEY_NOTIF_ENTERTAINMENT, NotificationsPrefs.TOPIC_ENTERTAINMENT),
+    NotifCategory("Comment Replies", "Replies to your comments",        NotificationsPrefs.KEY_NOTIF_COMMENTS,     NotificationsPrefs.TOPIC_COMMENTS),
+    NotifCategory("Daily Digest",    "Personalized briefing at your chosen time", NotificationsPrefs.KEY_NOTIF_DIGEST, ""),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -303,7 +303,7 @@ fun ProfileScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    "${cat.emoji} ${cat.label}",
+                                    cat.label,
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
                                 )
                                 Text(cat.description, style = MaterialTheme.typography.bodySmall, color = Color.Gray)

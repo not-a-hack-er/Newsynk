@@ -133,8 +133,12 @@ fun AppNavGraph(
                 }
             )
         }
-        composable(Screen.Bookmarks.route) {
-            com.abpvt.newsapp.ui.profile.BookmarksScreen(navController)
+        composable(Screen.Bookmarks.route) { backStackEntry ->
+            val newsEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.News.route)
+            }
+            val selectedArticleVM: SelectedArticleViewModel = hiltViewModel(newsEntry)
+            com.abpvt.newsapp.ui.profile.BookmarksScreen(navController, selectedArticleVM)
         }
         composable(Screen.Contact.route) {
             com.abpvt.newsapp.ui.profile.ContactScreen(navController)

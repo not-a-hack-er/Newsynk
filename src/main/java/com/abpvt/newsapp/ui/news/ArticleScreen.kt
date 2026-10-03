@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TextFormat
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -63,7 +65,8 @@ fun ArticleScreen(
     readerPreferencesViewModel: ReaderPreferencesViewModel = hiltViewModel()
 ) {
     val selectedArticle by selectedArticleViewModel.selectedArticle.collectAsState()
-    val article = selectedArticle ?: fallbackArticle
+    val article = selectedArticle?.takeIf { fallbackArticle == null || it.url == fallbackArticle.url }
+        ?: fallbackArticle
     val readerPalette by readerPreferencesViewModel.palette.collectAsState()
     val readerFontScale by readerPreferencesViewModel.fontScale.collectAsState()
     val readerLineHeight by readerPreferencesViewModel.lineHeight.collectAsState()
@@ -211,7 +214,7 @@ fun ArticleScreen(
                         }
                         // Comment
                         IconButton(onClick = onCommentClick) {
-                            Text("💬", style = MaterialTheme.typography.bodyLarge)
+                            Icon(Icons.Default.ChatBubbleOutline, contentDescription = "Comments", tint = Color.White)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -384,7 +387,10 @@ private fun HeroImage(urlToImage: String?) {
                 Box(
                     modifier = Modifier.fillMaxSize().background(Brush.linearGradient(listOf(GradientStart, GradientEnd))),
                     contentAlignment = Alignment.Center
-                ) { Text("📰", fontSize = 52.sp) }
+                ) {
+                    Icon(Icons.Default.AutoStories, contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(52.dp))
+                }
             }
         )
         Box(
