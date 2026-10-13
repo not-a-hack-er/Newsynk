@@ -6,6 +6,17 @@ Newsynk is a native Android news aggregator built with Kotlin and Jetpack Compos
 
 The launcher and in-app brand mark use this supplied artwork.
 
+## Start a technical review here
+
+| Area | Source and verification |
+| --- | --- |
+| Multi-source feed and cache | [`NewsRepository.kt`](src/main/java/com/abpvt/newsapp/data/repository/NewsRepository.kt) |
+| Coverage clustering | [`StoryClusterer.kt`](src/main/java/com/abpvt/newsapp/utils/StoryClusterer.kt) and its [unit test](src/test/java/com/abpvt/newsapp/utils/StoryClustererTest.kt) |
+| Deep links | [`DeepLinkRouter.kt`](src/main/java/com/abpvt/newsapp/navigation/DeepLinkRouter.kt) and its [unit test](src/test/java/com/abpvt/newsapp/navigation/DeepLinkRouterTest.kt) |
+| Backend rules | [`firestore.rules`](firestore.rules) and [`backend/test`](backend/test) |
+
+The sections below distinguish local RSS fallback from key-backed providers and production Firebase configuration.
+
 ## Features
 
 - Aggregated headlines from The Guardian, GNews, Currents, and NewsData.io; BBC News and Guardian RSS fallback
