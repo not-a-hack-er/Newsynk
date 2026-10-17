@@ -163,6 +163,11 @@ RELEASE_KEY_ALIAS=your_key_alias
 RELEASE_KEY_PASSWORD=your_key_password
 ```
 
+For a one-off build, the same `RELEASE_*` values may instead be supplied as
+environment variables; values in this project's `local.properties` take
+precedence. A `local.properties` in the parent directory is not read by this
+standalone project. Never commit signing values or the keystore.
+
 Then build with:
 
 ```bash

@@ -32,12 +32,18 @@ val localProperties = Properties().apply {
     if (propertiesFile != null) load(propertiesFile.inputStream())
 }
 
-val releaseStorePath = localProperties.getProperty("RELEASE_STORE_FILE")
+// CI and one-off release builds can provide signing values through the
+// environment without copying private credentials into this repository.
+fun releaseProperty(name: String): String? =
+    localProperties.getProperty(name)?.takeIf(String::isNotBlank)
+        ?: System.getenv(name)?.takeIf(String::isNotBlank)
+
+val releaseStorePath = releaseProperty("RELEASE_STORE_FILE")
 val releaseStore = releaseStorePath?.let { file(it) }
 val releaseSigningConfigured = releaseStore?.exists() == true &&
-    !localProperties.getProperty("RELEASE_STORE_PASSWORD").isNullOrBlank() &&
-    !localProperties.getProperty("RELEASE_KEY_ALIAS").isNullOrBlank() &&
-    !localProperties.getProperty("RELEASE_KEY_PASSWORD").isNullOrBlank()
+    releaseProperty("RELEASE_STORE_PASSWORD") != null &&
+    releaseProperty("RELEASE_KEY_ALIAS") != null &&
+    releaseProperty("RELEASE_KEY_PASSWORD") != null
 val backendBaseUrl = localProperties.getProperty("NEWSYNK_BACKEND_URL", "")
     .trim()
     .let { if (it.isBlank()) "https://example.invalid/" else "${it.trimEnd('/')}/" }
@@ -87,9 +93,9 @@ android {
     signingConfigs {
         if (releaseSigningConfigured) create("release") {
             storeFile = releaseStore
-            storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
-            keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
-            keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+            storePassword = releaseProperty("RELEASE_STORE_PASSWORD")
+            keyAlias = releaseProperty("RELEASE_KEY_ALIAS")
+            keyPassword = releaseProperty("RELEASE_KEY_PASSWORD")
         }
     }
 
