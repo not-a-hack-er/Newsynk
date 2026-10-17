@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.1 - 2026-10-17
+
+- Removed the supplied logo's white outer boundary and used a transparent, tightly framed brand asset throughout the app.
+- Replaced the remaining adaptive launcher icon definitions that still referenced the Android robot.
+- Confirmed the previously reported stale logo was caused by version 2.2.0 remaining installed on the phone; version 2.3.0 was installed in place before this refinement.
+- Made the secure news backend use GNews, Currents, and NewsData.io without requiring a Guardian key, and corrected provider-specific category mappings.
+- Added backend category tests to CI.
+- Kept Crashlytics mapping uploads on CI releases while allowing local offline release builds to finish.
+
 ## 2.3.0 - 2026-10-03
 
 - Adopted the supplied Newsynk logo for the launcher, sign-in, Home header, and story-card sharing.

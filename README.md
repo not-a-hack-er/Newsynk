@@ -1,10 +1,10 @@
 # Newsynk
 
-Newsynk is a native Android news aggregator built with Kotlin and Jetpack Compose. It combines stories from The Guardian, GNews, Currents, and NewsData.io (when configured), then presents them in a searchable, category-based feed with bookmarking, voting, comments, sharing, and configurable notifications. Without keys, it falls back to BBC News and Guardian RSS headlines.
+Newsynk is a native Android news aggregator built with Kotlin and Jetpack Compose. Its secure backend combines stories from GNews, Currents, and NewsData.io. Local debug builds can also use The Guardian when a key is configured. The app presents a searchable, category-based feed with bookmarking, voting, comments, sharing, and configurable notifications. Without keys, it falls back to BBC News and Guardian RSS headlines.
 
 ![Newsynk logo](src/main/res/drawable-nodpi/newsynk_logo.png)
 
-The launcher and in-app brand mark use this supplied artwork.
+The launcher and in-app brand mark use a transparent, tightly framed version of the supplied artwork, without the original white outer boundary.
 
 ## Start a technical review here
 
@@ -19,7 +19,7 @@ The sections below distinguish local RSS fallback from key-backed providers and 
 
 ## Features
 
-- Aggregated headlines from The Guardian, GNews, Currents, and NewsData.io; BBC News and Guardian RSS fallback
+- Aggregated headlines from GNews, Currents, and NewsData.io; optional Guardian access in local debug builds, plus BBC News and Guardian RSS fallback
 - Category filters, search, pagination, and pull-to-refresh
 - Personalized For You feed, topic onboarding, and recent searches
 - Multi-source story clustering with a Compare Coverage view
@@ -83,11 +83,11 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
    NEWSDATA_API_KEY=your_newsdata_key
    ```
 
-   Provider keys are optional for local reading. Without them, Newsynk uses public BBC News and Guardian RSS feeds for current headlines and categories. Search in this mode checks only recent stories from those feeds; full search and richer coverage need provider keys or the backend. The Guardian `test` key is not used because it no longer returns content reliably.
+   Provider keys are optional for local reading. Without them, Newsynk uses public BBC News and Guardian RSS feeds for current headlines and categories. Search in this mode checks only recent stories from those feeds; full search and richer coverage need provider keys or the backend. The Guardian `test` key is not used because it no longer returns content reliably. Avoid direct provider keys in APKs you distribute, including debug APKs.
 
    Create keys directly with the providers: [The Guardian Open Platform](https://open-platform.theguardian.com/access/), [GNews](https://gnews.io/faq), [Currents](https://currentsapi.services/en/news-api-key), and [NewsData.io](https://newsdata.io/blog/how-to-get-news-api-key/). Keep your keys in the ignored `local.properties` for local testing, or configure the Firebase secrets below for a production backend. No provider key is included in this repository.
 
-   Production release builds deliberately exclude all four provider keys. Configure the secure backend URL instead:
+   Production release builds deliberately exclude all provider keys. Configure the secure backend URL instead:
 
    ```properties
    NEWSYNK_BACKEND_URL=https://your-region-your-project.cloudfunctions.net/api/
@@ -98,23 +98,27 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
 4. Enable Email/Password and Google providers in Firebase Authentication. Create Firestore, review [`firestore.rules`](firestore.rules), and deploy the included rules and indexes:
 
    ```bash
-   firebase deploy --only firestore:rules,firestore:indexes
+   cd backend
+   npm ci
+   npx firebase login
+   npx firebase --config ../firebase.json --project YOUR_FIREBASE_PROJECT_ID deploy --only firestore:rules,firestore:indexes
+   cd ..
    ```
 
 5. For production news delivery, configure and deploy the Firebase Functions proxy. Provider keys are stored as Firebase secrets and never compiled into the release APK:
 
    ```bash
-   firebase functions:secrets:set GUARDIAN_API_KEY
-   firebase functions:secrets:set GNEWS_API_KEY
-   firebase functions:secrets:set CURRENTS_API_KEY
-   firebase functions:secrets:set NEWSDATA_API_KEY
-   cd backend && npm install && npm run build && cd ..
-   firebase deploy --only functions
+   cd backend
+   npx firebase --config ../firebase.json --project YOUR_FIREBASE_PROJECT_ID functions:secrets:set GNEWS_API_KEY
+   npx firebase --config ../firebase.json --project YOUR_FIREBASE_PROJECT_ID functions:secrets:set CURRENTS_API_KEY
+   npx firebase --config ../firebase.json --project YOUR_FIREBASE_PROJECT_ID functions:secrets:set NEWSDATA_API_KEY
+   npm run build
+   npx firebase --config ../firebase.json --project YOUR_FIREBASE_PROJECT_ID deploy --only functions:api
    ```
 
-   Register both debug and release builds with Firebase App Check. Debug builds use the debug provider; release builds use Play Integrity. The deployed proxy rejects requests without a valid App Check token.
+   The commands prompt for each secret locally; do not put keys on a command line. Cloud Functions require the Firebase Blaze billing plan. After deployment, set the function's HTTPS URL as `NEWSYNK_BACKEND_URL` in ignored `local.properties` for local builds and as a GitHub Actions secret for release builds. Rebuild and reinstall the APK; a previously built APK will not learn the new URL automatically. Register both debug and release builds with Firebase App Check. Debug builds use the debug provider; release builds use Play Integrity. The deployed proxy rejects requests without a valid App Check token.
 
-   The four providers have separate quotas and licenses. The Guardian developer key is for **non-commercial** use. GNews says its free plan is for **non-commercial development/testing only** and requires a paid plan for a published app; its free results are delayed. NewsData.io's free results are also delayed. Review current provider terms and publisher rights before distributing or monetizing a production build. NewsData.io uses cursor pagination; Newsynk currently includes only its first page and uses the other sources for subsequent pages. Never put provider keys in a public issue or commit.
+   The three backend providers have separate quotas and licenses. GNews's free plan is for **non-commercial** use and its results are delayed; NewsData.io's free results are also delayed. Review current provider terms and publisher rights before distributing or monetizing a production build. NewsData.io uses cursor pagination; Newsynk currently includes only its first page and uses the other sources for subsequent pages. Never put provider keys in a public issue, screenshot, chat, or commit. Rotate any key that was exposed and set its replacement directly in Firebase Secret Manager.
 
 6. Build and test from the repository root:
 
@@ -123,6 +127,8 @@ Additional vertical artwork is available in [`docs/screenshots`](docs/screenshot
    ```
 
    On Windows, use `gradlew.bat`.
+
+To update a connected phone without erasing app data, install the newly built APK with `adb install -r build/outputs/apk/debug/Newsynk-debug.apk`. Confirm the installed version in Android App info; an older installed APK will continue to show its old launcher and in-app logo even when the source repository has changed. If the launcher alone still displays a stale icon after updating, restart the launcher or phone to clear its icon cache.
 
 The project can compile without Firebase configuration for CI and source validation. Such builds show a setup message instead of a working sign-in screen; authentication requires a valid `google-services.json` at runtime.
 
@@ -136,6 +142,7 @@ cd backend
 npm ci
 npm audit --omit=dev
 npm run build
+npm run test:unit
 npm run test:rules
 ```
 
@@ -177,7 +184,7 @@ The workflow builds a signed release APK, uploads it as an Actions artifact, and
 ## Security
 
 - Never commit `local.properties`, `google-services.json`, keystores, or signing passwords.
-- Release APKs contain no Guardian, GNews, or Currents credentials; the Firebase Functions proxy owns them as server-side secrets.
+- Release APKs contain no news-provider credentials; the Firebase Functions proxy owns GNews, Currents, and NewsData.io keys as server-side secrets.
 - Restrict news-provider keys to the APIs and quotas the app requires.
 - In Google Cloud Console, restrict the Firebase browser/API key to this Android application using package `com.abpvt.newsapp` and the release/debug SHA certificate fingerprints where supported.
 - Rotate any credential that was previously exposed publicly and review Firebase Authentication and Firestore activity.

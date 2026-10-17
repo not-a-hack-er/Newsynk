@@ -43,6 +43,7 @@ jobs:
           npm ci
           npm audit --omit=dev
           npm run build
+          npm run test:unit
           npm run test:rules
 
       - name: Set up JDK 17 for Android

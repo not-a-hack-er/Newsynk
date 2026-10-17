@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
+    "test:unit": "node --test test/newsCategories.test.js",
     "lint": "eslint src --ext .ts",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",

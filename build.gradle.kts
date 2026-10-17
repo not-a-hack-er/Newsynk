@@ -1,4 +1,5 @@
 import java.util.Properties
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 
 plugins {
     alias(libs.plugins.android.application)
@@ -49,8 +50,8 @@ android {
         applicationId = "com.abpvt.newsapp"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "2.3.0"
+        versionCode = 13
+        versionName = "2.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -96,6 +97,11 @@ android {
         release {
             // Production news-provider credentials belong in the server proxy,
             // never in a reverse-engineerable APK.
+            // Local/offline builds should not fail on a Crashlytics mapping upload.
+            // Published CI releases still upload mappings for readable crash reports.
+            configure<CrashlyticsExtension> {
+                mappingFileUploadEnabled = System.getenv("CI")?.equals("true", ignoreCase = true) == true
+            }
             buildConfigField("String", "NEWS_API_KEY", "\"\"")
             buildConfigField("String", "GNEWS_API_KEY", "\"\"")
             buildConfigField("String", "CURRENTS_API_KEY", "\"\"")

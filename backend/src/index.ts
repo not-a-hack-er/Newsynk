@@ -2,10 +2,10 @@ import {initializeApp} from "firebase-admin/app";
 import {getAppCheck} from "firebase-admin/app-check";
 import {defineSecret} from "firebase-functions/params";
 import {onRequest} from "firebase-functions/v2/https";
+import {providerCategory} from "./newsCategories";
 
 initializeApp();
 
-const guardianKey = defineSecret("GUARDIAN_API_KEY");
 const gnewsKey = defineSecret("GNEWS_API_KEY");
 const currentsKey = defineSecret("CURRENTS_API_KEY");
 const newsDataKey = defineSecret("NEWSDATA_API_KEY");
@@ -33,25 +33,14 @@ async function jsonOrNull(url: URL, headers?: HeadersInit): Promise<any | null> 
   }
 }
 
-function guardianUrl(page: number, query?: string, category?: string): URL {
-  const url = new URL("https://content.guardianapis.com/search");
-  url.searchParams.set("api-key", guardianKey.value());
-  url.searchParams.set("page", String(page));
-  url.searchParams.set("page-size", "20");
-  url.searchParams.set("order-by", "newest");
-  url.searchParams.set("show-fields", "thumbnail,trailText,byline,bodyText");
-  if (query) url.searchParams.set("q", query);
-  if (category) url.searchParams.set("section", category === "sports" ? "sport" : category);
-  return url;
-}
-
 function gnewsUrl(page: number, query?: string, category?: string): URL {
   const url = new URL(`https://gnews.io/api/v4/${query ? "search" : "top-headlines"}`);
   url.searchParams.set("page", String(page));
   url.searchParams.set("max", "10");
   url.searchParams.set("lang", "en");
   if (query) url.searchParams.set("q", query);
-  if (category) url.searchParams.set("category", category);
+  const providerFilter = providerCategory("gnews", category);
+  if (providerFilter) url.searchParams.set("category", providerFilter);
   return url;
 }
 
@@ -60,7 +49,8 @@ function currentsUrl(page: number, query?: string, category?: string): URL {
   url.searchParams.set("page_number", String(page));
   url.searchParams.set("language", "en");
   if (query) url.searchParams.set("keywords", query);
-  if (category) url.searchParams.set("category", category);
+  const providerFilter = providerCategory("currents", category);
+  if (providerFilter) url.searchParams.set("category", providerFilter);
   return url;
 }
 
@@ -69,7 +59,8 @@ function newsDataUrl(query?: string, category?: string): URL {
   url.searchParams.set("apikey", newsDataKey.value());
   url.searchParams.set("language", "en");
   if (query) url.searchParams.set("q", query);
-  if (category) url.searchParams.set("category", category === "tech" ? "technology" : category);
+  const providerFilter = providerCategory("newsdata", category);
+  if (providerFilter) url.searchParams.set("category", providerFilter);
   return url;
 }
 
@@ -128,7 +119,7 @@ function normalizeNewsData(data: any): NormalizedArticle[] {
 }
 
 export const api = onRequest(
-  {cors: true, secrets: [guardianKey, gnewsKey, currentsKey, newsDataKey], timeoutSeconds: 30},
+  {cors: true, secrets: [gnewsKey, currentsKey, newsDataKey], timeoutSeconds: 30},
   async (request, response) => {
     if (request.path !== "/feed" || request.method !== "GET") {
       response.status(404).json({error: "Not found"});
@@ -151,21 +142,20 @@ export const api = onRequest(
     const query = String(request.query.query ?? "").trim().slice(0, 120) || undefined;
     const category = String(request.query.category ?? "").trim().toLowerCase().slice(0, 40) || undefined;
 
-    const [guardian, gnews, currents, newsData] = await Promise.all([
-      jsonOrNull(guardianUrl(page, query, category)),
+    const [gnews, currents, newsData] = await Promise.all([
       jsonOrNull(gnewsUrl(page, query, category), {"X-Api-Key": gnewsKey.value()}),
       jsonOrNull(currentsUrl(page, query, category), {Authorization: `Bearer ${currentsKey.value()}`}),
       page === 1 ? jsonOrNull(newsDataUrl(query, category)) : Promise.resolve(null),
     ]);
 
-    const guardianArticles: NormalizedArticle[] = guardian?.response?.results ?? [];
-    const merged = [guardianArticles, normalizeGnews(gnews), normalizeCurrents(currents), normalizeNewsData(newsData)]
-      .flatMap((items, sourceIndex) => items.map((item, index) => ({item, rank: index * 4 + sourceIndex})))
+    const merged = [normalizeGnews(gnews), normalizeCurrents(currents), normalizeNewsData(newsData)]
+      .flatMap((items, sourceIndex) => items.map((item, index) => ({item, rank: index * 3 + sourceIndex})))
       .sort((a, b) => a.rank - b.rank)
       .map(({item}) => item)
       .filter((item, index, all) => item.webUrl && all.findIndex((other) => other.webUrl === item.webUrl) === index);
 
-    response.set("Cache-Control", "public, max-age=120, s-maxage=300");
+    // Never let a shared intermediary replay a response around App Check verification.
+    response.set("Cache-Control", "private, max-age=120");
     response.json({
       response: {status: "ok", total: merged.length, results: merged},
     });
