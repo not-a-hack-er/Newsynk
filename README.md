@@ -166,7 +166,7 @@ RELEASE_KEY_PASSWORD=your_key_password
 Then build with:
 
 ```bash
-./gradlew clean testReleaseUnitTest assembleRelease
+./gradlew clean testReleaseUnitTest lintRelease bundleRelease assembleRelease
 ```
 
 ## Continuous integration and releases
@@ -176,19 +176,21 @@ The CI workflow runs unit tests, builds the debug APK, and uploads it as a workf
 Pushing a tag such as `v2.0.0` runs the release workflow. Configure these GitHub Actions secrets first:
 
 - `GOOGLE_SERVICES_JSON_BASE64`
-- `NEWSYNK_BACKEND_URL`
+- `NEWSYNK_BACKEND_URL` (optional while the Firebase project remains on Spark; the app uses public RSS sources without the proxy)
 - `GOOGLE_WEB_CLIENT_ID` (optional override; normally taken from `google-services.json`)
 - `RELEASE_KEYSTORE_BASE64`
 - `RELEASE_STORE_PASSWORD`
 - `RELEASE_KEY_ALIAS`
 - `RELEASE_KEY_PASSWORD`
 
-The workflow builds a signed release APK, uploads it as an Actions artifact, and creates a GitHub Release for the tag.
+The workflow builds a signed Play App Bundle (`.aab`) and APK, uploads both as Actions artifacts, and creates a GitHub Release for the tag. Upload the `.aab` to the existing Play Console app; do not upload the APK as a new application. An update must use the existing Play upload key. If its passwords are unavailable, use Play Console's upload-key reset process before attempting publication. A keystore file alone is not sufficient to sign a new release.
+
+The [Newsynk account deletion page](https://github.com/not-a-hack-er/newsynk-privacy-policy/blob/main/DELETE_ACCOUNT.md) provides the off-app request path required by Google Play. The app links to it from Profile. The developer must verify and fulfil requests by removing the Firebase Authentication user and associated Firestore data; publishing the page alone does not perform deletion automatically.
 
 ## Security
 
 - Never commit `local.properties`, `google-services.json`, keystores, or signing passwords.
-- Release APKs contain no news-provider credentials; the Firebase Functions proxy owns GNews, Currents, and NewsData.io keys as server-side secrets.
+- Release APKs contain no news-provider credentials. Until the Firebase Functions proxy can be deployed on Blaze, release builds use the public RSS sources; GNews, Currents, and NewsData.io are not available in production.
 - Restrict news-provider keys to the APIs and quotas the app requires.
 - In Google Cloud Console, restrict the Firebase browser/API key to this Android application using package `com.abpvt.newsapp` and the release/debug SHA certificate fingerprints where supported.
 - Rotate any credential that was previously exposed publicly and review Firebase Authentication and Firestore activity.

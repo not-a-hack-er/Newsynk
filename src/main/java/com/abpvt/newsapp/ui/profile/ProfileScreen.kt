@@ -1,6 +1,8 @@
 package com.abpvt.newsapp.ui.profile
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -514,6 +516,25 @@ fun ProfileScreen(
             ) {
                 Icon(Icons.Default.Email, null, modifier = Modifier.padding(end = 8.dp))
                 Text("Contact Us", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Keep account deletion accessible from the signed-in profile.
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://github.com/not-a-hack-er/newsynk-privacy-policy/blob/main/DELETE_ACCOUNT.md")
+                        )
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Request account deletion", fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(Modifier.height(12.dp))

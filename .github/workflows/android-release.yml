@@ -36,14 +36,12 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-          NEWSYNK_BACKEND_URL: ${{ secrets.NEWSYNK_BACKEND_URL }}
         run: |
           test -n "$GOOGLE_SERVICES_JSON_BASE64"
           test -n "$RELEASE_KEYSTORE_BASE64"
           test -n "$RELEASE_STORE_PASSWORD"
           test -n "$RELEASE_KEY_ALIAS"
           test -n "$RELEASE_KEY_PASSWORD"
-          test -n "$NEWSYNK_BACKEND_URL"
 
       - name: Create private build configuration
         env:
@@ -67,17 +65,19 @@ jobs:
             printf 'RELEASE_KEY_PASSWORD=%s\n' "$RELEASE_KEY_PASSWORD"
           } > local.properties
 
-      - name: Test and build signed release APK
-        run: ./gradlew --no-daemon clean testReleaseUnitTest assembleRelease
+      - name: Test and build signed release bundle and APK
+        run: ./gradlew --no-daemon clean testReleaseUnitTest bundleRelease assembleRelease
 
-      - name: Upload signed APK
+      - name: Upload signed bundle and APK
         uses: actions/upload-artifact@v7
         with:
           name: newsynk-${{ github.ref_name }}
-          path: build/outputs/apk/release/*-release.apk
+          path: |
+            build/outputs/bundle/release/*.aab
+            build/outputs/apk/release/*-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" build/outputs/apk/release/*-release.apk --verify-tag --generate-notes --title "Newsynk $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" build/outputs/bundle/release/*.aab build/outputs/apk/release/*-release.apk --verify-tag --generate-notes --title "Newsynk $GITHUB_REF_NAME"

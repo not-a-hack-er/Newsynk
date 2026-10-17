@@ -353,7 +353,7 @@ fun RegisterScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable {
                     val intent = Intent(Intent.ACTION_VIEW,
-                        Uri.parse("https://not-a-hack-er.github.io/newsynk-privacy-policy/"))
+                        Uri.parse("https://github.com/not-a-hack-er/newsynk-privacy-policy/blob/main/PRIVACY_POLICY.md"))
                     context.startActivity(intent)
                 }
             )

@@ -4,10 +4,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Required for posting notifications on Android 13+ -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> <!-- Required for reading photos from gallery on Android 13+ -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" /> <!-- Required for reading photos from gallery on older versions -->
 
     <application
         android:name=".NewsApplication"
