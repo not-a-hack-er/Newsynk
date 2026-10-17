@@ -1,6 +1,10 @@
 # Newsynk
 
-Newsynk is a native Android news aggregator built with Kotlin and Jetpack Compose. Its secure backend combines stories from GNews, Currents, and NewsData.io. Local debug builds can also use The Guardian when a key is configured. The app presents a searchable, category-based feed with bookmarking, voting, comments, sharing, and configurable notifications. Without keys, it falls back to BBC News and Guardian RSS headlines.
+Newsynk is a native Android news aggregator built with Kotlin and Jetpack Compose. Its optional secure backend is designed to combine stories from GNews, Currents, and NewsData.io. Local debug builds can call those providers directly when keys are configured. The app presents a searchable, category-based feed with bookmarking, voting, comments, sharing, and configurable notifications. Without a backend or direct keys, it falls back to BBC News and Guardian RSS headlines.
+
+## Current deployment status
+
+The Firebase project `newsapp-4078f` is on the Spark plan. Email/Password and Google sign-in are enabled. Firestore rules and the lowercase `comments` composite index are deployed. The Cloud Functions news proxy is **not** deployed because Functions requires Blaze. The checked-in release configuration intentionally excludes provider keys, so release APKs currently use the RSS fallback. A local debug APK built with keys in ignored `local.properties` can use all three providers; do not distribute that APK because the keys can be extracted from it. Firebase App Check is not registered or enforced yet.
 
 ![Newsynk logo](src/main/res/drawable-nodpi/newsynk_logo.png)
 
