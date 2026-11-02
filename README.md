@@ -190,7 +190,7 @@ Pushing a tag such as `v2.0.0` runs the release workflow. Configure these GitHub
 
 The workflow builds a signed Play App Bundle (`.aab`) and APK, uploads both as Actions artifacts, and creates a GitHub Release for the tag. Upload the `.aab` to the existing Play Console app; do not upload the APK as a new application. An update must use the existing Play upload key. If its passwords are unavailable, use Play Console's upload-key reset process before attempting publication. A keystore file alone is not sufficient to sign a new release.
 
-The [Newsynk account deletion page](https://github.com/not-a-hack-er/newsynk-privacy-policy/blob/main/DELETE_ACCOUNT.md) provides the off-app request path required by Google Play. The app links to it from Profile. The developer must verify and fulfil requests by removing the Firebase Authentication user and associated Firestore data; publishing the page alone does not perform deletion automatically.
+The [Newsynk account deletion page](https://newsynk-account-deletion.sassyclock34.chatgpt.site/) provides the public off-app request path required by Google Play. The app also links to the deletion instructions from Profile. The developer must verify and fulfil requests by removing the Firebase Authentication user and associated Firestore data; publishing the page alone does not perform deletion automatically.
 
 ## Security
 
