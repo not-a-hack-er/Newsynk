@@ -44,7 +44,7 @@ class NewsRepository @Inject constructor(
             category.isNullOrBlank() || category.equals("All", ignoreCase = true) -> "top:1"
             else -> "category:${category.lowercase()}:1"
         }
-        return cacheDao.getFeed(key).map { it.toArticle() }
+        return ArticleFreshness.recent(cacheDao.getFeed(key).map { it.toArticle() })
     }
 
     suspend fun getPersonalizedNews(topics: Set<String>, page: Int = 1): Resource<List<Article>> {
@@ -304,9 +304,10 @@ class NewsRepository @Inject constructor(
         articles: List<Article>,
         emptyMessage: String
     ): Resource<List<Article>> {
-        return if (articles.isNotEmpty()) {
-            cache(feedKey, articles)
-            Resource.Success(articles)
+        val recent = ArticleFreshness.recent(articles)
+        return if (recent.isNotEmpty()) {
+            cache(feedKey, recent)
+            Resource.Success(recent)
         } else {
             cachedOrError(feedKey, emptyMessage)
         }
@@ -326,7 +327,7 @@ class NewsRepository @Inject constructor(
     }
 
     private suspend fun cachedOrError(feedKey: String, message: String): Resource<List<Article>> {
-        val cached = cacheDao.getFeed(feedKey).map { it.toArticle() }
+        val cached = ArticleFreshness.recent(cacheDao.getFeed(feedKey).map { it.toArticle() })
         return if (cached.isNotEmpty()) Resource.Success(cached) else Resource.Error(message)
     }
 

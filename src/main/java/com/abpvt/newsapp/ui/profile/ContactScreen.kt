@@ -119,6 +119,14 @@ fun ContactScreen(navController: NavHostController) {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                         ContactRow(icon = Icons.Default.Person, label = "Developer", value = "Akarsh Bajpai", onClick = null)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        ContactRow(
+                            icon = Icons.Default.Language, label = "Newsynk website",
+                            value = "Newsynk contact and source information",
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://not-a-hack-er.github.io/Newsynk/")))
+                            }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                         ContactRow(icon = Icons.Default.Newspaper, label = "App", value = "Newsynk – News Aggregator", onClick = null)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                         ContactRow(icon = Icons.Default.Schedule, label = "Response Time", value = "Within 48 hours", onClick = null)

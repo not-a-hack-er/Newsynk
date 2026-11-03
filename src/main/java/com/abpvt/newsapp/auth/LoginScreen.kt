@@ -428,6 +428,9 @@ fun LoginScreen(
                     )
                 }
             }
+            TextButton(onClick = { navController.navigate(Screen.Contact.route) }) {
+                Text("Contact Us", color = Color.White)
+            }
         }
     }
 }
