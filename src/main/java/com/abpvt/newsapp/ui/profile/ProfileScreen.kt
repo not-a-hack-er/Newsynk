@@ -526,7 +526,7 @@ fun ProfileScreen(
                     context.startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/not-a-hack-er/newsynk-privacy-policy/blob/main/DELETE_ACCOUNT.md")
+                            Uri.parse("https://newsynk-account-deletion.sassyclock34.chatgpt.site/")
                         )
                     )
                 },

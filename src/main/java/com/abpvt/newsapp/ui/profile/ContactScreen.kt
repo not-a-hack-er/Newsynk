@@ -123,7 +123,7 @@ fun ContactScreen(navController: NavHostController) {
                             icon = Icons.Default.Language, label = "Newsynk website",
                             value = "Newsynk contact and source information",
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://not-a-hack-er.github.io/Newsynk/")))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://newsynk-contact.letnewsynk.chatgpt.site/")))
                             }
                         )
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
@@ -134,7 +134,7 @@ fun ContactScreen(navController: NavHostController) {
                         ContactRow(
                             icon = Icons.Default.Policy, label = "Privacy Policy", value = "View our Privacy Policy",
                             onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/not-a-hack-er/newsynk-privacy-policy/blob/main/PRIVACY_POLICY.md"))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://newsynk-contact.letnewsynk.chatgpt.site/privacy-policy.html"))
                                 context.startActivity(intent)
                             }
                         )
