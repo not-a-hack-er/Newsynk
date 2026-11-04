@@ -79,7 +79,7 @@
       <div class="avatar">📰</div>
       <h1>Privacy Policy</h1>
       <p class="subtitle">Newsynk — News Aggregator App</p>
-      <p class="updated">Last updated: April 2026 &nbsp;·&nbsp; Developed by Akarsh Bajpai</p>
+      <p class="updated">Last updated: November 2026 &nbsp;·&nbsp; Developed by Akarsh Bajpai</p>
     </div>
 
     <div class="card">
@@ -100,9 +100,12 @@
     <div class="card">
       <h2>📦 Information We Collect</h2>
       <ul>
-        <li><strong>Account data:</strong> Email address and display name when you register via email/password or Google Sign-In.</li>
+        <li><strong>Account data:</strong> Email address, display name, and account user ID when you register via email/password or Google Sign-In.</li>
         <li><strong>Profile data:</strong> Avatar color preference and profile photo (stored locally on your device).</li>
         <li><strong>Usage data:</strong> Article bookmarks, votes (upvotes/downvotes), and comments you submit — stored in Firebase Firestore.</li>
+        <li><strong>Search terms:</strong> Searches you enter are sent to news providers, including Google News RSS, to return results. Providers may retain requests under their own privacy policies. Newsynk does not save a separate search history to your account.</li>
+        <li><strong>Optional analytics:</strong> If you opt in, Firebase Analytics receives app interaction data to help us understand and improve app use.</li>
+        <li><strong>Diagnostics:</strong> Crash reports and performance diagnostics help us identify and fix app problems.</li>
         <li><strong>Notification preferences:</strong> Which categories you opt into for push notifications (stored locally in SharedPreferences).</li>
         <li><strong>Device token:</strong> Firebase Cloud Messaging token for delivering push notifications (not linked to personal identity).</li>
       </ul>
@@ -115,7 +118,7 @@
         <li>Contact lists or phone numbers</li>
         <li>Camera access or photos (only gallery selection for avatar, on your initiative)</li>
         <li>Payment or financial information</li>
-        <li>Behavioural tracking or advertising identifiers</li>
+        <li>Advertising identifiers for targeted ads</li>
       </ul>
     </div>
 
@@ -124,6 +127,8 @@
       <ul>
         <li>To authenticate you and maintain your account session.</li>
         <li>To save your bookmarks, votes, and comments so they persist across devices.</li>
+        <li>To send your search terms to news providers and display matching results.</li>
+        <li>To analyze app use when you opt in and diagnose crashes and performance problems.</li>
         <li>To send you push notifications for the news categories you select (only with your permission).</li>
         <li>To personalise your username and avatar within the app.</li>
       </ul>
@@ -134,6 +139,7 @@
       <p>Newsynk integrates the following third-party services, each with their own privacy policies:</p>
       <ul>
         <li><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Google Firebase</a> — authentication, database (Firestore), and push notifications.</li>
+        <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google News RSS</a> — search and news results.</li>
         <li><a href="https://open-platform.theguardian.com/commercial-developer-agreement/" target="_blank" rel="noopener">The Guardian Open Platform</a> — news content (The Guardian API).</li>
         <li><a href="https://gnews.io/privacy" target="_blank" rel="noopener">GNews</a> — news content aggregation.</li>
         <li><a href="https://currentsapi.services/en/docs/" target="_blank" rel="noopener">Currents API</a> — news content aggregation.</li>
@@ -156,9 +162,10 @@
     <div class="card">
       <h2>🗑️ Data Deletion</h2>
       <p>
-        You can delete your account and all associated data at any time by contacting us at
-        <a href="mailto:letnewsynk@gmail.com">letnewsynk@gmail.com</a>.
-        We will permanently delete your account data from our Firebase database within 30 days.
+        You can delete your account in the app or follow our
+        <a href="https://newsynk-account-deletion.sassyclock34.chatgpt.site/">account deletion instructions</a>.
+        You can also contact <a href="mailto:letnewsynk@gmail.com">letnewsynk@gmail.com</a>.
+        We will permanently delete your account data from our Firebase database within 30 days, except data that must be retained for legal or security reasons as described on the deletion page.
       </p>
     </div>
 
